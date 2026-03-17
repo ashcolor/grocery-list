@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@keyframes fade-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+.animate-fade-out-left {
+  animation: fade-out-left 0.25s ease-out forwards;
+}
+
+.fab {
+  bottom: 5.5rem;
+}
