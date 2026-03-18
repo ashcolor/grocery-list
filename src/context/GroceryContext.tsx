@@ -13,10 +13,16 @@ export interface LocationDef {
 }
 
 const DEFAULT_CATEGORIES: CategoryDef[] = [
-  { name: "食品", emoji: "🍖" },
+  { name: "肉・魚", emoji: "🥩" },
+  { name: "野菜・果物", emoji: "🥬" },
+  { name: "その他の食品", emoji: "🍚" },
   { name: "飲み物", emoji: "🥤" },
   { name: "日用品", emoji: "🧻" },
-  { name: "その他", emoji: "📦" },
+];
+
+const DEFAULT_LOCATIONS: LocationDef[] = [
+  { name: "スーパー", emoji: "🛒" },
+  { name: "ホームセンター", emoji: "🏠" },
 ];
 
 export interface GroceryItem {
@@ -52,18 +58,32 @@ interface GroceryContextValue {
   reorderOutOfStockItems: (fromId: number, toId: number) => void;
   moveToOutOfStock: (id: number, options?: { silent?: boolean }) => void;
   moveToShopping: (id: number, options?: { silent?: boolean }) => void;
+  resetToDefaults: () => void;
+  clearAll: () => void;
   showToast: (message: string, icon: string, onUndo?: () => void) => void;
 }
 
 const DEFAULT_ITEMS: GroceryItem[] = [
-  { id: 1, name: "納豆", category: "食品" },
-  { id: 2, name: "トイレットペーパー", category: "日用品" },
-  { id: 3, name: "ティッシュ", category: "日用品" },
-  { id: 4, name: "キムチ", category: "食品" },
-  { id: 5, name: "豆乳", category: "飲み物" },
-  { id: 6, name: "ヨーグルト", category: "食品" },
-  { id: 7, name: "コーヒー", category: "飲み物" },
-  { id: 8, name: "麦茶", category: "飲み物" },
+  { id: 1, name: "牛肉", category: "肉・魚" },
+  { id: 2, name: "豚肉", category: "肉・魚" },
+  { id: 3, name: "鶏肉", category: "肉・魚" },
+  { id: 4, name: "ひき肉", category: "肉・魚" },
+  { id: 5, name: "刺し身", category: "肉・魚" },
+  { id: 6, name: "ネギ", category: "野菜・果物" },
+  { id: 7, name: "白菜", category: "野菜・果物" },
+  { id: 8, name: "もやし", category: "野菜・果物" },
+  { id: 9, name: "キャベツ", category: "野菜・果物" },
+  { id: 10, name: "レタス", category: "野菜・果物" },
+  { id: 11, name: "トマト", category: "野菜・果物" },
+  { id: 12, name: "きゅうり", category: "野菜・果物" },
+  { id: 13, name: "玉ねぎ", category: "野菜・果物" },
+  { id: 14, name: "にんじん", category: "野菜・果物" },
+  { id: 15, name: "パスタ", category: "その他の食品" },
+  { id: 16, name: "ラーメン", category: "その他の食品" },
+  { id: 17, name: "豆腐", category: "その他の食品" },
+  { id: 18, name: "トイレットペーパー", category: "日用品" },
+  { id: 19, name: "ティッシュ", category: "日用品" },
+  { id: 20, name: "ゴミ袋", category: "日用品" },
 ];
 
 const GroceryContext = createContext<GroceryContextValue | null>(null);
@@ -83,7 +103,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
   );
   const [locations, setLocations] = useLocalStorage<LocationDef[]>(
     "locations",
-    [],
+    DEFAULT_LOCATIONS,
     (raw) => {
       const arr = raw as any[];
       if (arr.length > 0 && typeof arr[0] === "string") {
@@ -266,6 +286,20 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     }
   }, [outOfStockItems, setOutOfStockItems, setShoppingItems, show]);
 
+  const resetToDefaults = useCallback(() => {
+    setCategories(DEFAULT_CATEGORIES);
+    setLocations(DEFAULT_LOCATIONS);
+    setShoppingItems([]);
+    setOutOfStockItems(DEFAULT_ITEMS);
+  }, [setCategories, setLocations, setShoppingItems, setOutOfStockItems]);
+
+  const clearAll = useCallback(() => {
+    setCategories([]);
+    setLocations([]);
+    setShoppingItems([]);
+    setOutOfStockItems([]);
+  }, [setCategories, setLocations, setShoppingItems, setOutOfStockItems]);
+
   return (
     <GroceryContext value={{
       categories,
@@ -291,6 +325,8 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       reorderOutOfStockItems,
       moveToOutOfStock,
       moveToShopping,
+      resetToDefaults,
+      clearAll,
       showToast: show,
     }}>
       {children}

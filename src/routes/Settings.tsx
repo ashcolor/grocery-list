@@ -197,7 +197,7 @@ function SortableLocationItem({
 }
 
 export default function Settings() {
-  const { categories, addCategory, removeCategory, updateCategory, reorderCategories, locations, addLocation, removeLocation, updateLocation, reorderLocations } = useGrocery();
+  const { categories, addCategory, removeCategory, updateCategory, reorderCategories, locations, addLocation, removeLocation, updateLocation, reorderLocations, resetToDefaults, clearAll } = useGrocery();
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmoji, setEditEmoji] = useState("");
@@ -391,6 +391,32 @@ export default function Settings() {
           場所を追加
         </button>
       )}
+
+      <h2 className="text-lg font-bold mt-6">データ管理</h2>
+      <div className="flex gap-2">
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={() => {
+            if (window.confirm("すべてのデータを初期状態に戻しますか？")) {
+              resetToDefaults();
+            }
+          }}
+        >
+          <Icon icon="mdi:restart" className="size-4" />
+          初期化
+        </button>
+        <button
+          className="btn btn-outline btn-sm btn-error"
+          onClick={() => {
+            if (window.confirm("すべてのデータを削除しますか？この操作は元に戻せません。")) {
+              clearAll();
+            }
+          }}
+        >
+          <Icon icon="mdi:delete-forever" className="size-4" />
+          全削除
+        </button>
+      </div>
     </div>
   );
 }
