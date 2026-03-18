@@ -3,6 +3,17 @@
   themes: light --default, dark --prefersdark;
 }
 
+[data-theme="light"],
+:root {
+  --color-primary: oklch(72% 0.143 158.9);
+  --color-secondary: oklch(65.7% 0.111 194.8);
+}
+
+[data-theme="dark"] {
+  --color-primary: oklch(72% 0.143 158.9);
+  --color-secondary: oklch(65.7% 0.111 194.8);
+}
+
 @keyframes fade-out-left {
   to {
     opacity: 0;
