@@ -5,11 +5,16 @@ import { useGrocery } from "../context/GroceryContext";
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
+  type DragOverEvent,
+  DragOverlay,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -137,7 +142,7 @@ function SortableCategoryGroup({
       <li
         ref={setActivatorNodeRef}
         {...listeners}
-        className="p-4 pb-2 text-xs tracking-wide select-none cursor-grab touch-none"
+        className="p-4 pb-2 text-xs tracking-wide select-none cursor-grab touch-none border-b border-base-300"
       >
         <div className="flex items-center justify-between w-full">
           <span>{emoji} {category}</span>
@@ -181,6 +186,7 @@ function SortableGroceryItem({
     transform,
     transition,
     isDragging,
+    setActivatorNodeRef,
   } = useSortable({ id: item.id, disabled: isEditing });
 
   const style = {
@@ -204,38 +210,43 @@ function SortableGroceryItem({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
-      className={`list-row cursor-pointer active:bg-base-300 transition-colors select-none ${
+      className={`flex items-stretch border-b border-base-300 select-none ${
         dismissingId === item.id ? "animate-fade-out-left" : ""
       } ${isDragging ? "opacity-50 z-10" : ""}`}
     >
-      <button
-        className="btn btn-square btn-ghost btn-sm"
+      <div
+        className="flex flex-1 items-center px-4 py-3 cursor-pointer min-w-0 active:bg-base-300 transition-colors"
         onClick={() => onCheck(item.id)}
       >
-        <Icon icon="mdi:check" className="size-5" />
-      </button>
-      <div>
-        <div>{item.name}</div>
-        {(() => {
-          const dates = mode === "shopping" ? item.outOfStockDates : item.purchaseDates;
-          const last = dates?.at(-1);
-          if (!last) return null;
-          return (
-            <div className="text-xs text-base-content/40">
-              {last && (Date.now() - last) < 86400000
-                ? `最近${mode === "shopping" ? "なくなった" : "購入した"}`
-                : `${relativeDate(last)}に${mode === "shopping" ? "なくなった" : "購入"}`}
-            </div>
-          );
-        })()}
+        <div className="min-w-0">
+          <div className="truncate">{item.name}</div>
+          {(() => {
+            const dates = mode === "shopping" ? item.outOfStockDates : item.purchaseDates;
+            const last = dates?.at(-1);
+            if (!last) return null;
+            return (
+              <div className="text-xs text-base-content/40">
+                {last && (Date.now() - last) < 86400000
+                  ? `最近${mode === "shopping" ? "なくなった" : "購入した"}`
+                  : `${relativeDate(last)}に${mode === "shopping" ? "なくなった" : "購入"}`}
+              </div>
+            );
+          })()}
+        </div>
       </div>
-      <button
-        className="btn btn-square btn-ghost btn-sm"
+      <div
+        className="flex items-center justify-center px-2 cursor-pointer active:bg-base-300 transition-colors"
         onClick={(e) => { e.stopPropagation(); onEdit(item); }}
       >
         <Icon icon="mdi:dots-vertical" className="size-5" />
-      </button>
+      </div>
+      <div
+        ref={setActivatorNodeRef}
+        {...listeners}
+        className="flex items-center justify-center pr-3 pl-2 touch-none cursor-grab"
+      >
+        <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+      </div>
     </li>
   );
 }
@@ -252,14 +263,25 @@ export default function GroceryList({
   onEditNewComplete,
   onEditNewCancel,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation } = useGrocery();
+  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetDragStart = useRef<number | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const within = pointerWithin(args);
+    if (within.length > 0) return within;
+    // If dragging an item and pointer is outside all droppables, return empty
+    if (typeof args.active.id === "number") return [];
+    return closestCenter(args);
+  }, []);
 
   const handleClick = useCallback((id: number) => {
     setDismissingId(id);
@@ -280,8 +302,27 @@ export default function GroceryList({
   const unsetGroup = grouped.get(UNSET_CATEGORY);
   const catSortableIds = namedEntries.map(([cat]) => `cat-${cat}`);
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    if (typeof active.id !== "number" || typeof over.id !== "number") return;
+
+    const activeItem = items.find(i => i.id === active.id);
+    const overItem = items.find(i => i.id === over.id);
+    if (activeItem && overItem && activeItem.category !== overItem.category) {
+      updateItemCategory(active.id as number, overItem.category);
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    // Dropped outside any category → move to unset
+    if (!over && typeof active.id === "number") {
+      updateItemCategory(active.id, "");
+      return;
+    }
+
     if (!over || active.id === over.id) return;
 
     // Category reorder
@@ -296,11 +337,6 @@ export default function GroceryList({
 
     // Item reorder
     if (typeof active.id === "number" && typeof over.id === "number") {
-      const activeItem = items.find(i => i.id === active.id);
-      const overItem = items.find(i => i.id === over.id);
-      if (activeItem && overItem && activeItem.category !== overItem.category) {
-        updateItemCategory(active.id, overItem.category);
-      }
       onItemReorder(active.id, over.id);
     }
   };
@@ -327,8 +363,15 @@ export default function GroceryList({
     <>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+        collisionDetection={collisionDetection}
+        onDragStart={(event: DragStartEvent) => {
+          if (typeof event.active.id === "number") setActiveId(event.active.id);
+        }}
+        onDragOver={handleDragOver}
+        onDragEnd={(event: DragEndEvent) => {
+          setActiveId(null);
+          handleDragEnd(event);
+        }}
       >
         <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-4">
@@ -360,12 +403,95 @@ export default function GroceryList({
             )}
           </div>
         </SortableContext>
+        <DragOverlay>
+          {activeId != null && (() => {
+            const item = items.find(i => i.id === activeId);
+            if (!item) return null;
+            return (
+              <ul className="list bg-base-100 rounded-box shadow-lg opacity-90">
+                <li className="list-row">
+                  <div className="flex items-center justify-center self-stretch pr-2">
+                    <Icon icon="mdi:check" className="size-5" />
+                  </div>
+                  <div className="self-center"><div>{item.name}</div></div>
+                  <div className="flex items-center gap-1">
+                    <button className="btn btn-square btn-ghost btn-sm">
+                      <Icon icon="mdi:dots-vertical" className="size-5" />
+                    </button>
+                    <span className="touch-none cursor-grab">
+                      <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            );
+          })()}
+        </DragOverlay>
       </DndContext>
 
       {editingItem && (
-        <dialog className="modal modal-open" onClick={() => setEditingItem(null)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-4">{editingItem.name}</h3>
+        <div className="fixed inset-0 z-50" onClick={() => setEditingItem(null)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
+            style={{
+              transform: `translateY(${sheetDragY}px)`,
+              transition: sheetDragStart.current != null ? "none" : "transform 0.25s ease-out",
+              animation: sheetDragStart.current != null ? "none" : undefined,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="w-10 h-1 bg-base-300 rounded-full mx-auto mb-4 cursor-grab touch-none"
+              onPointerDown={(e) => {
+                sheetDragStart.current = e.clientY;
+                setSheetDragY(0);
+                (e.target as HTMLElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (sheetDragStart.current == null) return;
+                const dy = e.clientY - sheetDragStart.current;
+                setSheetDragY(Math.max(0, dy));
+              }}
+              onPointerUp={() => {
+                if (sheetDragStart.current == null) return;
+                if (sheetDragY > 100) {
+                  setEditingItem(null);
+                }
+                sheetDragStart.current = null;
+                setSheetDragY(0);
+              }}
+            />
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="text"
+                className="input input-bordered flex-1 font-bold text-lg min-w-0"
+                value={editingItem.name}
+                onChange={(e) => {
+                  setEditingItem({ ...editingItem, name: e.target.value });
+                }}
+                onBlur={() => {
+                  const trimmed = editingItem.name.trim();
+                  if (trimmed) {
+                    updateItemName(editingItem.id, trimmed);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
+              <button
+                className="btn btn-ghost btn-square text-error"
+                onClick={() => {
+                  onItemRemove(editingItem.id);
+                  setEditingItem(null);
+                }}
+              >
+                <Icon icon="mdi:delete-outline" className="size-6" />
+              </button>
+            </div>
             <div className="form-control">
               <label className="label">
                 <span className="label-text">カテゴリ</span>
@@ -432,22 +558,13 @@ export default function GroceryList({
                 )}
               </div>
             </div>
-            <div className="modal-action">
-              <button
-                className="btn btn-error"
-                onClick={() => {
-                  onItemRemove(editingItem.id);
-                  setEditingItem(null);
-                }}
-              >
-                削除
-              </button>
-              <button className="btn" onClick={() => setEditingItem(null)}>
+            <div className="mt-6">
+              <button className="btn btn-block" onClick={() => setEditingItem(null)}>
                 閉じる
               </button>
             </div>
           </div>
-        </dialog>
+        </div>
       )}
     </>
   );

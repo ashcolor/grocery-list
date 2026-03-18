@@ -91,9 +91,6 @@ function SortableCategoryItem({
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <span ref={setActivatorNodeRef} {...listeners} className="touch-none">
-            <Icon icon="mdi:drag" className="size-5 text-base-content/30 shrink-0 cursor-grab" />
-          </span>
           <span className="text-lg cursor-pointer" onClick={() => onStartEdit(idx)}>{cat.emoji}</span>
           <span className="flex-1 cursor-pointer" onClick={() => onStartEdit(idx)}>{cat.name}</span>
           <button
@@ -102,6 +99,9 @@ function SortableCategoryItem({
           >
             <Icon icon="mdi:delete" className="size-4" />
           </button>
+          <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab">
+            <Icon icon="fa6-solid:grip-lines" className="size-5 text-base-content/30 shrink-0" />
+          </span>
         </div>
       )}
     </li>
@@ -171,13 +171,13 @@ function SortableLocationItem({
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <span ref={setActivatorNodeRef} {...listeners} className="touch-none">
-            <Icon icon="mdi:drag" className="size-5 text-base-content/30 shrink-0 cursor-grab" />
-          </span>
           <span className="flex-1 cursor-pointer" onClick={() => onStartEdit(idx, loc)}>{loc}</span>
           <button className="btn btn-sm btn-ghost text-error" onClick={() => onRemove(loc)}>
             <Icon icon="mdi:delete" className="size-4" />
           </button>
+          <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab">
+            <Icon icon="fa6-solid:grip-lines" className="size-5 text-base-content/30 shrink-0" />
+          </span>
         </div>
       )}
     </li>
