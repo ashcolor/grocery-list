@@ -24,12 +24,12 @@ function LocationTabs({ selected, onSelect }: { selected: string | null; onSelec
       </a>
       {locations.map((loc) => (
         <a
-          key={loc}
+          key={loc.name}
           role="tab"
-          className={`tab ${selected === loc ? "tab-active" : ""}`}
-          onClick={() => onSelect(loc)}
+          className={`tab ${selected === loc.name ? "tab-active" : ""}`}
+          onClick={() => onSelect(loc.name)}
         >
-          {loc}
+          {loc.emoji} {loc.name}
         </a>
       ))}
     </div>
@@ -40,7 +40,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const showTabs = location.pathname === "/" || location.pathname === "/out-of-stock";
+  const showTabs = location.pathname === "/";
 
   return (
     <GroceryProvider>

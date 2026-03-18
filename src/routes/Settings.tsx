@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
-import type { CategoryDef } from "../context/GroceryContext";
+import type { CategoryDef, LocationDef } from "../context/GroceryContext";
 import {
   DndContext,
   closestCenter,
@@ -113,18 +113,22 @@ function SortableLocationItem({
   idx,
   isEditing,
   editLocName,
+  editLocEmoji,
   onEditLocName,
+  onEditLocEmoji,
   onStartEdit,
   onSaveEdit,
   onCancelEdit,
   onRemove,
 }: {
-  loc: string;
+  loc: LocationDef;
   idx: number;
   isEditing: boolean;
   editLocName: string;
+  editLocEmoji: string;
   onEditLocName: (v: string) => void;
-  onStartEdit: (idx: number, name: string) => void;
+  onEditLocEmoji: (v: string) => void;
+  onStartEdit: (idx: number) => void;
   onSaveEdit: (oldName: string) => void;
   onCancelEdit: () => void;
   onRemove: (name: string) => void;
@@ -137,7 +141,7 @@ function SortableLocationItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: loc, disabled: isEditing });
+  } = useSortable({ id: loc.name, disabled: isEditing });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -155,14 +159,21 @@ function SortableLocationItem({
         <div className="flex items-center gap-2">
           <input
             type="text"
+            className="input input-bordered input-sm w-16 text-center"
+            value={editLocEmoji}
+            onChange={(e) => onEditLocEmoji(e.target.value)}
+            placeholder="📍"
+          />
+          <input
+            type="text"
             className="input input-bordered input-sm flex-1"
             value={editLocName}
             onChange={(e) => onEditLocName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") onSaveEdit(loc);
+              if (e.key === "Enter") onSaveEdit(loc.name);
             }}
           />
-          <button className="btn btn-sm btn-primary" onClick={() => onSaveEdit(loc)}>
+          <button className="btn btn-sm btn-primary" onClick={() => onSaveEdit(loc.name)}>
             <Icon icon="mdi:check" className="size-4" />
           </button>
           <button className="btn btn-sm btn-ghost" onClick={onCancelEdit}>
@@ -171,8 +182,9 @@ function SortableLocationItem({
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <span className="flex-1 cursor-pointer" onClick={() => onStartEdit(idx, loc)}>{loc}</span>
-          <button className="btn btn-sm btn-ghost text-error" onClick={() => onRemove(loc)}>
+          <span className="text-lg cursor-pointer" onClick={() => onStartEdit(idx)}>{loc.emoji}</span>
+          <span className="flex-1 cursor-pointer" onClick={() => onStartEdit(idx)}>{loc.name}</span>
+          <button className="btn btn-sm btn-ghost text-error" onClick={() => onRemove(loc.name)}>
             <Icon icon="mdi:delete" className="size-4" />
           </button>
           <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab">
@@ -195,8 +207,10 @@ export default function Settings() {
 
   const [editingLocIdx, setEditingLocIdx] = useState<number | null>(null);
   const [editLocName, setEditLocName] = useState("");
+  const [editLocEmoji, setEditLocEmoji] = useState("");
   const [addingLoc, setAddingLoc] = useState(false);
   const [newLocName, setNewLocName] = useState("");
+  const [newLocEmoji, setNewLocEmoji] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -241,8 +255,8 @@ export default function Settings() {
   const handleLocDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const fromIdx = locations.indexOf(active.id as string);
-    const toIdx = locations.indexOf(over.id as string);
+    const fromIdx = locations.findIndex((l) => l.name === active.id);
+    const toIdx = locations.findIndex((l) => l.name === over.id);
     if (fromIdx !== -1 && toIdx !== -1) reorderLocations(fromIdx, toIdx);
   };
 
@@ -306,20 +320,23 @@ export default function Settings() {
 
       <h2 className="text-lg font-bold mt-6">場所</h2>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLocDragEnd}>
-        <SortableContext items={locations} strategy={verticalListSortingStrategy}>
+        <SortableContext items={locations.map((l) => l.name)} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-2">
             {locations.map((loc, idx) => (
               <SortableLocationItem
-                key={loc}
+                key={loc.name}
                 loc={loc}
                 idx={idx}
                 isEditing={editingLocIdx === idx}
                 editLocName={editLocName}
+                editLocEmoji={editLocEmoji}
                 onEditLocName={setEditLocName}
-                onStartEdit={(i, name) => { setEditingLocIdx(i); setEditLocName(name); }}
+                onEditLocEmoji={setEditLocEmoji}
+                onStartEdit={(i) => { setEditingLocIdx(i); setEditLocName(locations[i].name); setEditLocEmoji(locations[i].emoji); }}
                 onSaveEdit={(oldName) => {
                   const name = editLocName.trim();
-                  if (name) { updateLocation(oldName, name); setEditingLocIdx(null); }
+                  const emoji = editLocEmoji.trim();
+                  if (name && emoji) { updateLocation(oldName, { name, emoji }); setEditingLocIdx(null); }
                 }}
                 onCancelEdit={() => setEditingLocIdx(null)}
                 onRemove={removeLocation}
@@ -333,21 +350,34 @@ export default function Settings() {
         <div className="bg-base-100 rounded-lg px-4 py-3 shadow-sm flex items-center gap-2">
           <input
             type="text"
+            className="input input-bordered input-sm w-16 text-center"
+            value={newLocEmoji}
+            onChange={(e) => setNewLocEmoji(e.target.value)}
+            placeholder="📍"
+            autoFocus
+          />
+          <input
+            type="text"
             className="input input-bordered input-sm flex-1"
             value={newLocName}
             onChange={(e) => setNewLocName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 const name = newLocName.trim();
-                if (name && !locations.includes(name)) { addLocation(name); setNewLocName(""); setAddingLoc(false); }
+                const emoji = newLocEmoji.trim();
+                if (name && emoji && !locations.some((l) => l.name === name)) {
+                  addLocation({ name, emoji }); setNewLocName(""); setNewLocEmoji(""); setAddingLoc(false);
+                }
               }
             }}
             placeholder="場所名"
-            autoFocus
           />
           <button className="btn btn-sm btn-primary" onClick={() => {
             const name = newLocName.trim();
-            if (name && !locations.includes(name)) { addLocation(name); setNewLocName(""); setAddingLoc(false); }
+            const emoji = newLocEmoji.trim();
+            if (name && emoji && !locations.some((l) => l.name === name)) {
+              addLocation({ name, emoji }); setNewLocName(""); setNewLocEmoji(""); setAddingLoc(false);
+            }
           }}>
             <Icon icon="mdi:check" className="size-4" />
           </button>

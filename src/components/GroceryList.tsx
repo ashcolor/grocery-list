@@ -30,7 +30,7 @@ interface GroceryListProps {
   mode: "shopping" | "outOfStock";
   emptyMessage: string;
   editingNewId: number | null;
-  onItemClick: (id: number) => void;
+  onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
   onItemReorder: (fromId: number, toId: number) => void;
   onAddToCategory: (category: string) => void;
@@ -163,6 +163,7 @@ function SortableGroceryItem({
   item,
   mode,
   dismissingId,
+  checkedId,
   editingNewId,
   onCheck,
   onEdit,
@@ -172,6 +173,7 @@ function SortableGroceryItem({
   item: GroceryItem;
   mode: "shopping" | "outOfStock";
   dismissingId: number | null;
+  checkedId: number | null;
   editingNewId: number | null;
   onCheck: (id: number) => void;
   onEdit: (item: GroceryItem) => void;
@@ -215,9 +217,15 @@ function SortableGroceryItem({
       } ${isDragging ? "opacity-50 z-10" : ""}`}
     >
       <div
-        className="flex flex-1 items-center px-4 py-3 cursor-pointer min-w-0 active:bg-base-300 transition-colors"
+        className="flex flex-1 items-center gap-3 px-4 py-3 cursor-pointer min-w-0 active:bg-base-300 transition-colors"
         onClick={() => onCheck(item.id)}
       >
+        <Icon
+          icon={checkedId === item.id
+            ? (mode === "shopping" ? "mdi:check-circle" : "mdi:cart-check")
+            : (mode === "shopping" ? "mdi:check-circle-outline" : "mdi:cart-plus")}
+          className={`size-5 shrink-0 ${checkedId === item.id ? "text-success" : "text-base-content/30"}`}
+        />
         <div className="min-w-0">
           <div className="truncate">{item.name}</div>
           {(() => {
@@ -263,7 +271,7 @@ export default function GroceryList({
   onEditNewComplete,
   onEditNewCancel,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName } = useGrocery();
+  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName, showToast } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -283,13 +291,39 @@ export default function GroceryList({
     return closestCenter(args);
   }, []);
 
+  const [checkedId, setCheckedId] = useState<number | null>(null);
+
+  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleClick = useCallback((id: number) => {
-    setDismissingId(id);
-    setTimeout(() => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    setCheckedId(id);
+    const toastMsg = mode === "shopping"
+      ? `${item.name} を購入済みに`
+      : `${item.name} をお買い物リストに追加`;
+    const toastIcon = mode === "shopping" ? "mdi:cart-check" : "mdi:cart-plus";
+
+    showToast(toastMsg, toastIcon, () => {
+      if (pendingRef.current) {
+        clearTimeout(pendingRef.current);
+        pendingRef.current = null;
+      }
+      setCheckedId(null);
       setDismissingId(null);
-      onItemClick(id);
-    }, 250);
-  }, [onItemClick]);
+    });
+
+    pendingRef.current = setTimeout(() => {
+      setDismissingId(id);
+      setTimeout(() => {
+        setCheckedId(null);
+        setDismissingId(null);
+        pendingRef.current = null;
+        onItemClick(id, { silent: true });
+      }, 250);
+    }, 300);
+  }, [items, mode, onItemClick, showToast]);
 
   if (items.length === 0 && editingNewId === null) {
     return (
@@ -349,6 +383,7 @@ export default function GroceryList({
           item={item}
           mode={mode}
           dismissingId={dismissingId}
+          checkedId={checkedId}
           editingNewId={editingNewId}
           onCheck={handleClick}
           onEdit={setEditingItem}
@@ -408,22 +443,20 @@ export default function GroceryList({
             const item = items.find(i => i.id === activeId);
             if (!item) return null;
             return (
-              <ul className="list bg-base-100 rounded-box shadow-lg opacity-90">
-                <li className="list-row">
-                  <div className="flex items-center justify-center self-stretch pr-2">
-                    <Icon icon="mdi:check" className="size-5" />
+              <li className="flex items-stretch bg-base-100 rounded-box shadow-lg opacity-90 select-none">
+                <div className="flex flex-1 items-center gap-3 px-4 py-3 min-w-0">
+                  <Icon icon="mdi:check-circle-outline" className="size-5 text-base-content/30 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="truncate">{item.name}</div>
                   </div>
-                  <div className="self-center"><div>{item.name}</div></div>
-                  <div className="flex items-center gap-1">
-                    <button className="btn btn-square btn-ghost btn-sm">
-                      <Icon icon="mdi:dots-vertical" className="size-5" />
-                    </button>
-                    <span className="touch-none cursor-grab">
-                      <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
-                    </span>
-                  </div>
-                </li>
-              </ul>
+                </div>
+                <div className="flex items-center justify-center px-2">
+                  <Icon icon="mdi:dots-vertical" className="size-5" />
+                </div>
+                <div className="flex items-center justify-center pr-3 pl-2 cursor-grab">
+                  <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+                </div>
+              </li>
             );
           })()}
         </DragOverlay>
@@ -527,7 +560,7 @@ export default function GroceryList({
                 >
                   <option value="">未設定</option>
                   {locations.map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
+                    <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
                   ))}
                 </select>
               </div>
