@@ -2,9 +2,13 @@ import { useState } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router";
 import { Icon } from "@iconify/react";
 import { GroceryProvider, useGrocery } from "./context/GroceryContext";
+import { HamburgerMenu } from "./components/HamburgerMenu";
 import Home from "./routes/Home";
 import OutOfStock from "./routes/OutOfStock";
 import Settings from "./routes/Settings";
+import PrivacyPolicy from "./routes/PrivacyPolicy";
+import TermsOfService from "./routes/TermsOfService";
+import OperatorInfo from "./routes/OperatorInfo";
 
 function LocationTabs({ selected, onSelect }: { selected: string | null; onSelect: (loc: string | null) => void }) {
   const { locations } = useGrocery();
@@ -42,13 +46,11 @@ export default function App() {
     <GroceryProvider>
     <div className="min-h-screen bg-base-200 pb-20">
       <header className="navbar bg-base-100 shadow-sm">
-        <div className="flex-1">
-          <span className="text-xl font-bold px-4">買い物リスト</span>
-        </div>
         <div className="flex-none">
-          <button className="btn btn-ghost btn-square" onClick={() => navigate("/settings")}>
-            <Icon icon="mdi:cog" className="size-6" />
-          </button>
+          <HamburgerMenu />
+        </div>
+        <div className="flex-1">
+          <span className="text-xl font-bold">買い物リスト</span>
         </div>
       </header>
       {showTabs && <LocationTabs selected={selectedLocation} onSelect={setSelectedLocation} />}
@@ -57,6 +59,9 @@ export default function App() {
           <Route path="/" element={<Home locationFilter={selectedLocation} />} />
           <Route path="/out-of-stock" element={<OutOfStock locationFilter={selectedLocation} />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/operator" element={<OperatorInfo />} />
         </Routes>
       </main>
       <div className="dock">

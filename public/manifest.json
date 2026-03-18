@@ -1,0 +1,29 @@
+{
+  "name": "買い物リスト",
+  "short_name": "買い物リスト",
+  "description": "シンプルな買い物リストアプリ",
+  "lang": "ja",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ffffff",
+  "background_color": "#f2f2f2",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/icon-192x192.webp",
+      "type": "image/webp",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.webp",
+      "type": "image/webp",
+      "sizes": "512x512"
+    }
+  ]
+}
