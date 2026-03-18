@@ -36,7 +36,7 @@ export function useToast() {
     if (count === 0) return null;
 
     return (
-      <div className="fixed top-20 left-0 right-0 z-50 flex justify-center">
+      <div className="fixed top-4 left-0 right-0 z-50 flex justify-center">
         <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
           {toasts.map((t, i) => {
             const isTop = i === count - 1;

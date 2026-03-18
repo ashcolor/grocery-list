@@ -1,63 +1,52 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import GroceryList from "../components/GroceryList";
 
-export default function OutOfStock() {
-  const { outOfStockItems, addOutOfStockItem, removeOutOfStockItem, moveToShopping } =
+export default function OutOfStock({ locationFilter }: { locationFilter: string | null }) {
+  const { outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, reorderOutOfStockItems, moveToShopping } =
     useGrocery();
-  const [showModal, setShowModal] = useState(false);
-  const [input, setInput] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const filteredItems = locationFilter
+    ? outOfStockItems.filter((item) => item.location === locationFilter)
+    : outOfStockItems;
+  const [editingNewId, setEditingNewId] = useState<number | null>(null);
 
-  const openModal = () => {
-    setShowModal(true);
-    setTimeout(() => inputRef.current?.focus(), 100);
+  const handleAdd = (category?: string) => {
+    if (editingNewId !== null) return;
+    const id = addOutOfStockItem("", category, locationFilter ?? undefined);
+    setEditingNewId(id);
   };
 
-  const addItem = () => {
-    const name = input.trim();
-    if (!name) return;
-    addOutOfStockItem(name);
-    setInput("");
+  const handleEditComplete = (id: number, name: string) => {
+    updateItemName(id, name);
+    setEditingNewId(null);
+  };
+
+  const handleEditCancel = (id: number) => {
+    removeOutOfStockItem(id);
+    setEditingNewId(null);
   };
 
   return (
     <>
       <GroceryList
-        items={outOfStockItems}
+        items={filteredItems}
+        mode="outOfStock"
         emptyMessage="なくなったものはありません"
+        editingNewId={editingNewId}
         onItemClick={moveToShopping}
         onItemRemove={removeOutOfStockItem}
+        onItemReorder={reorderOutOfStockItems}
+        onAddToCategory={(cat) => handleAdd(cat)}
+        onEditNewComplete={handleEditComplete}
+        onEditNewCancel={handleEditCancel}
       />
 
       <div className="fab">
-        <button className="btn btn-lg btn-circle btn-primary" onClick={openModal}>
+        <button className="btn btn-lg btn-circle btn-primary" onClick={() => handleAdd()}>
           <Icon icon="mdi:plus" className="size-7" />
         </button>
       </div>
-
-      {showModal && (
-        <dialog className="modal modal-open" onClick={() => setShowModal(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-bold text-lg mb-4">なくなったものを追加</h3>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                className="input input-bordered flex-1"
-                placeholder="アイテム名..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addItem()}
-              />
-              <button className="btn btn-primary" onClick={addItem}>
-                追加
-              </button>
-            </div>
-          </div>
-        </dialog>
-      )}
     </>
   );
 }
