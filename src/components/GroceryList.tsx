@@ -228,15 +228,14 @@ function SortableGroceryItem({
         />
         <div className="min-w-0">
           <div className="truncate">{item.name}</div>
-          {(() => {
-            const dates = mode === "shopping" ? item.outOfStockDates : item.purchaseDates;
-            const last = dates?.at(-1);
+          {mode === "outOfStock" && (() => {
+            const last = item.purchaseDates?.at(-1);
             if (!last) return null;
             return (
               <div className="text-xs text-base-content/40">
-                {last && (Date.now() - last) < 86400000
-                  ? `最近${mode === "shopping" ? "なくなった" : "購入した"}`
-                  : `${relativeDate(last)}に${mode === "shopping" ? "なくなった" : "購入"}`}
+                {(Date.now() - last) < 86400000
+                  ? "最近購入した"
+                  : `${relativeDate(last)}に購入`}
               </div>
             );
           })()}
@@ -271,7 +270,7 @@ export default function GroceryList({
   onEditNewComplete,
   onEditNewCancel,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName, showToast } = useGrocery();
+  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -296,23 +295,7 @@ export default function GroceryList({
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleClick = useCallback((id: number) => {
-    const item = items.find(i => i.id === id);
-    if (!item) return;
-
     setCheckedId(id);
-    const toastMsg = mode === "shopping"
-      ? `${item.name} を購入済みに`
-      : `${item.name} をお買い物リストに追加`;
-    const toastIcon = mode === "shopping" ? "mdi:cart-check" : "mdi:cart-plus";
-
-    showToast(toastMsg, toastIcon, () => {
-      if (pendingRef.current) {
-        clearTimeout(pendingRef.current);
-        pendingRef.current = null;
-      }
-      setCheckedId(null);
-      setDismissingId(null);
-    });
 
     pendingRef.current = setTimeout(() => {
       setDismissingId(id);
@@ -320,10 +303,10 @@ export default function GroceryList({
         setCheckedId(null);
         setDismissingId(null);
         pendingRef.current = null;
-        onItemClick(id, { silent: true });
+        onItemClick(id);
       }, 250);
     }, 300);
-  }, [items, mode, onItemClick, showToast]);
+  }, [onItemClick]);
 
   if (items.length === 0 && editingNewId === null) {
     return (
