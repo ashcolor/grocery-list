@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router";
 import { useGrocery } from "../context/GroceryContext";
 import GroceryList from "../components/GroceryList";
+import { UNSET_FILTER } from "../App";
 
 export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
-  const { outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, reorderOutOfStockItems, moveToShopping } =
+  const navigate = useNavigate();
+  const { outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, moveToShopping } =
     useGrocery();
-  const filteredItems = storageLocationFilter
-    ? outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter)
-    : outOfStockItems;
+  const filteredItems = storageLocationFilter === null
+    ? outOfStockItems
+    : storageLocationFilter === UNSET_FILTER
+      ? outOfStockItems.filter((item) => !item.storageLocation)
+      : outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter);
   const [editingNewId, setEditingNewId] = useState<number | null>(null);
 
   const handleAdd = (category?: string) => {
@@ -32,11 +37,18 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
       <GroceryList
         items={filteredItems}
         mode="outOfStock"
-        emptyMessage="なくなったものはありません"
+        emptyMessage={<>
+          <p>なくなったものはありません</p>
+          <p>
+            <button className="link link-primary inline-flex items-center gap-1" onClick={() => navigate("/")}>
+              <Icon icon="mdi:cart-outline" className="size-4" />お買いもの
+            </button>
+            {" "}タブで購入したものをタップ
+          </p>
+        </>}
         editingNewId={editingNewId}
         onItemClick={moveToShopping}
         onItemRemove={removeOutOfStockItem}
-        onItemReorder={reorderOutOfStockItems}
         onAddToCategory={(cat) => handleAdd(cat)}
         onEditNewComplete={handleEditComplete}
         onEditNewCancel={handleEditCancel}

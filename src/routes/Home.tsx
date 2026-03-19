@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router";
 import { useGrocery } from "../context/GroceryContext";
 import GroceryList from "../components/GroceryList";
+import { UNSET_FILTER } from "../App";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
-  const { shoppingItems, addShoppingItem, updateItemName, removeShoppingItem, reorderShoppingItems, moveToOutOfStock } =
+  const navigate = useNavigate();
+  const { shoppingItems, addShoppingItem, updateItemName, removeShoppingItem, moveToOutOfStock } =
     useGrocery();
-  const filteredItems = locationFilter
-    ? shoppingItems.filter((item) => item.location === locationFilter)
-    : shoppingItems;
+  const filteredItems = locationFilter === null
+    ? shoppingItems
+    : locationFilter === UNSET_FILTER
+      ? shoppingItems.filter((item) => !item.location)
+      : shoppingItems.filter((item) => item.location === locationFilter);
   const [editingNewId, setEditingNewId] = useState<number | null>(null);
 
   const handleAdd = (category?: string) => {
@@ -32,11 +37,18 @@ export default function Home({ locationFilter }: { locationFilter: string | null
       <GroceryList
         items={filteredItems}
         mode="shopping"
-        emptyMessage="リストは空です"
+        emptyMessage={<>
+          <p>リストは空です</p>
+          <p>
+            <button className="link link-primary inline-flex items-center gap-1" onClick={() => navigate("/out-of-stock")}>
+              <Icon icon="mdi:vanish" className="size-4" />なくなった
+            </button>
+            {" "}タブから必要なものをタップ
+          </p>
+        </>}
         editingNewId={editingNewId}
         onItemClick={moveToOutOfStock}
         onItemRemove={removeShoppingItem}
-        onItemReorder={reorderShoppingItems}
         onAddToCategory={(cat) => handleAdd(cat)}
         onEditNewComplete={handleEditComplete}
         onEditNewCancel={handleEditCancel}

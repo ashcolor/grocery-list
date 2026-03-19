@@ -3,24 +3,9 @@ import { Icon } from "@iconify/react";
 import { type GroceryItem, type CategoryDef } from "../context/GroceryContext";
 import { useGrocery } from "../context/GroceryContext";
 import {
-  DndContext,
-  closestCenter,
-  pointerWithin,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-  type DragOverEvent,
-  DragOverlay,
-  type CollisionDetection,
-} from "@dnd-kit/core";
-import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
-  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useRef, useEffect } from "react";
@@ -28,11 +13,10 @@ import { useRef, useEffect } from "react";
 interface GroceryListProps {
   items: GroceryItem[];
   mode: "shopping" | "outOfStock";
-  emptyMessage: string;
+  emptyMessage: React.ReactNode;
   editingNewId: number | null;
   onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
-  onItemReorder: (fromId: number, toId: number) => void;
   onAddToCategory: (category: string) => void;
   onEditNewComplete: (id: number, name: string) => void;
   onEditNewCancel: (id: number) => void;
@@ -268,30 +252,15 @@ export default function GroceryList({
   editingNewId,
   onItemClick,
   onItemRemove,
-  onItemReorder,
   onAddToCategory,
   onEditNewComplete,
   onEditNewCancel,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
+  const { categories, updateItemCategory, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
-  const [activeId, setActiveId] = useState<number | null>(null);
   const [sheetDragY, setSheetDragY] = useState(0);
   const sheetDragStart = useRef<number | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const collisionDetection: CollisionDetection = useCallback((args) => {
-    const within = pointerWithin(args);
-    if (within.length > 0) return within;
-    // If dragging an item and pointer is outside all droppables, return empty
-    if (typeof args.active.id === "number") return [];
-    return closestCenter(args);
-  }, []);
 
   const [checkedId, setCheckedId] = useState<number | null>(null);
 
@@ -313,7 +282,7 @@ export default function GroceryList({
 
   if (items.length === 0 && editingNewId === null) {
     return (
-      <p className="text-center text-base-content/50 py-8">{emptyMessage}</p>
+      <div className="text-center text-base-content/50 py-8 space-y-2">{emptyMessage}</div>
     );
   }
 
@@ -321,45 +290,6 @@ export default function GroceryList({
   const namedEntries = [...grouped.entries()].filter(([cat]) => cat !== UNSET_CATEGORY);
   const unsetGroup = grouped.get(UNSET_CATEGORY);
   const catSortableIds = namedEntries.map(([cat]) => `cat-${cat}`);
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    if (typeof active.id !== "number" || typeof over.id !== "number") return;
-
-    const activeItem = items.find(i => i.id === active.id);
-    const overItem = items.find(i => i.id === over.id);
-    if (activeItem && overItem && activeItem.category !== overItem.category) {
-      updateItemCategory(active.id as number, overItem.category);
-    }
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    // Dropped outside any category → move to unset
-    if (!over && typeof active.id === "number") {
-      updateItemCategory(active.id, "");
-      return;
-    }
-
-    if (!over || active.id === over.id) return;
-
-    // Category reorder
-    if (typeof active.id === "string" && typeof over.id === "string") {
-      const fromName = (active.id as string).slice(4);
-      const toName = (over.id as string).slice(4);
-      const fromIdx = categories.findIndex(c => c.name === fromName);
-      const toIdx = categories.findIndex(c => c.name === toName);
-      if (fromIdx !== -1 && toIdx !== -1) reorderCategories(fromIdx, toIdx);
-      return;
-    }
-
-    // Item reorder
-    if (typeof active.id === "number" && typeof over.id === "number") {
-      onItemReorder(active.id, over.id);
-    }
-  };
 
   const itemList = (catItems: GroceryItem[]) => (
     <SortableContext items={catItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
@@ -382,80 +312,45 @@ export default function GroceryList({
 
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collisionDetection}
-        onDragStart={(event: DragStartEvent) => {
-          if (typeof event.active.id === "number") setActiveId(event.active.id);
-        }}
-        onDragOver={handleDragOver}
-        onDragEnd={(event: DragEndEvent) => {
-          setActiveId(null);
-          handleDragEnd(event);
-        }}
-      >
-        <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col gap-4 pt-4">
-            <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
-              {mode === "shopping" ? (<>
-                <p>タップで購入済みへ</p>
-                <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
-              </>) : (<>
-                <p>タップで「<Icon icon="mdi:cart-outline" className="inline size-4" /> お買いもの」リストへ</p>
-                <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
-              </>)}
-            </div>
-            {namedEntries.map(([category, { emoji, items: catItems }]) => (
-              <SortableCategoryGroup
-                key={category}
-                category={category}
-                emoji={emoji}
-                onAddToCategory={onAddToCategory}
-              >
-                {itemList(catItems)}
-              </SortableCategoryGroup>
-            ))}
-            {unsetGroup && (
-              <ul className="list bg-base-100 rounded-box shadow-md">
-                <li className="p-4 pb-2 text-xs tracking-wide select-none">
-                  <div className="flex items-center justify-between w-full">
-                    <span>{UNSET_EMOJI} {UNSET_LABEL}</span>
-                    <button
-                      className="btn btn-xs btn-ghost btn-circle"
-                      onClick={(e) => { e.stopPropagation(); onAddToCategory(UNSET_CATEGORY); }}
-                    >
-                      <Icon icon="mdi:plus" className="size-4" />
-                    </button>
-                  </div>
-                </li>
-                {itemList(unsetGroup.items)}
-              </ul>
-            )}
+      <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
+        <div className="flex flex-col gap-4 pt-4">
+          <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
+            {mode === "shopping" ? (<>
+              <p>タップで購入済みへ</p>
+              <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
+            </>) : (<>
+              <p>タップで「<Icon icon="mdi:cart-outline" className="inline size-4" /> お買いもの」リストへ</p>
+              <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
+            </>)}
           </div>
-        </SortableContext>
-        <DragOverlay>
-          {activeId != null && (() => {
-            const item = items.find(i => i.id === activeId);
-            if (!item) return null;
-            return (
-              <li className="flex items-stretch bg-base-100 rounded-box shadow-lg opacity-90 select-none">
-                <div className="flex flex-1 items-center gap-3 px-4 py-3 min-w-0">
-                  <Icon icon="mdi:check-circle-outline" className="size-5 text-base-content/30 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="truncate">{item.name}</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center px-2">
-                  <Icon icon="mdi:dots-vertical" className="size-5" />
-                </div>
-                <div className="flex items-center justify-center pr-3 pl-2 cursor-grab">
-                  <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+          {namedEntries.map(([category, { emoji, items: catItems }]) => (
+            <SortableCategoryGroup
+              key={category}
+              category={category}
+              emoji={emoji}
+              onAddToCategory={onAddToCategory}
+            >
+              {itemList(catItems)}
+            </SortableCategoryGroup>
+          ))}
+          {unsetGroup && (
+            <ul className="list bg-base-100 rounded-box shadow-md">
+              <li className="p-4 pb-2 text-xs tracking-wide select-none">
+                <div className="flex items-center justify-between w-full">
+                  <span>{UNSET_EMOJI} {UNSET_LABEL}</span>
+                  <button
+                    className="btn btn-xs btn-ghost btn-circle"
+                    onClick={(e) => { e.stopPropagation(); onAddToCategory(UNSET_CATEGORY); }}
+                  >
+                    <Icon icon="mdi:plus" className="size-4" />
+                  </button>
                 </div>
               </li>
-            );
-          })()}
-        </DragOverlay>
-      </DndContext>
+              {itemList(unsetGroup.items)}
+            </ul>
+          )}
+        </div>
+      </SortableContext>
 
       {editingItem && (
         <div className="fixed inset-0 z-50" onClick={() => setEditingItem(null)}>
