@@ -12,6 +12,11 @@ export interface LocationDef {
   emoji: string;
 }
 
+export interface StorageLocationDef {
+  name: string;
+  emoji: string;
+}
+
 const DEFAULT_CATEGORIES: CategoryDef[] = [
   { name: "肉・魚", emoji: "🥩" },
   { name: "野菜・果物", emoji: "🥬" },
@@ -25,11 +30,18 @@ const DEFAULT_LOCATIONS: LocationDef[] = [
   { name: "ホームセンター", emoji: "🏠" },
 ];
 
+const DEFAULT_STORAGE_LOCATIONS: StorageLocationDef[] = [
+  { name: "冷蔵庫", emoji: "🧊" },
+  { name: "台所", emoji: "🍳" },
+  { name: "洗面所", emoji: "🪥" },
+];
+
 export interface GroceryItem {
   id: number;
   name: string;
   category: string;
   location?: string;
+  storageLocation?: string;
   purchaseDates?: number[];
   outOfStockDates?: number[];
 }
@@ -46,10 +58,16 @@ interface GroceryContextValue {
   updateLocation: (oldName: string, updated: LocationDef) => void;
   reorderLocations: (fromIdx: number, toIdx: number) => void;
   updateItemLocation: (id: number, location: string | undefined) => void;
+  storageLocations: StorageLocationDef[];
+  addStorageLocation: (loc: StorageLocationDef) => void;
+  removeStorageLocation: (name: string) => void;
+  updateStorageLocation: (oldName: string, updated: StorageLocationDef) => void;
+  reorderStorageLocations: (fromIdx: number, toIdx: number) => void;
+  updateItemStorageLocation: (id: number, storageLocation: string | undefined) => void;
   shoppingItems: GroceryItem[];
   outOfStockItems: GroceryItem[];
-  addShoppingItem: (name: string, category?: string, location?: string) => number;
-  addOutOfStockItem: (name: string, category?: string, location?: string) => number;
+  addShoppingItem: (name: string, category?: string, location?: string, storageLocation?: string) => number;
+  addOutOfStockItem: (name: string, category?: string, location?: string, storageLocation?: string) => number;
   removeShoppingItem: (id: number) => void;
   removeOutOfStockItem: (id: number) => void;
   updateItemName: (id: number, name: string) => void;
@@ -112,6 +130,10 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       return arr as LocationDef[];
     },
   );
+  const [storageLocations, setStorageLocations] = useLocalStorage<StorageLocationDef[]>(
+    "storage-locations",
+    DEFAULT_STORAGE_LOCATIONS,
+  );
   const { show, ToastContainer } = useToast();
 
   const addLocation = useCallback((loc: LocationDef) => {
@@ -154,6 +176,46 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     );
   }, [setShoppingItems, setOutOfStockItems]);
 
+  const addStorageLocation = useCallback((loc: StorageLocationDef) => {
+    setStorageLocations((prev) => prev.some((l) => l.name === loc.name) ? prev : [...prev, loc]);
+  }, [setStorageLocations]);
+
+  const removeStorageLocation = useCallback((name: string) => {
+    setStorageLocations((prev) => prev.filter((l) => l.name !== name));
+    const clear = (item: GroceryItem) =>
+      item.storageLocation === name ? { ...item, storageLocation: undefined } : item;
+    setShoppingItems((prev) => prev.map(clear));
+    setOutOfStockItems((prev) => prev.map(clear));
+  }, [setStorageLocations, setShoppingItems, setOutOfStockItems]);
+
+  const updateStorageLocation = useCallback((oldName: string, updated: StorageLocationDef) => {
+    setStorageLocations((prev) => prev.map((l) => (l.name === oldName ? updated : l)));
+    if (oldName !== updated.name) {
+      const rename = (item: GroceryItem) =>
+        item.storageLocation === oldName ? { ...item, storageLocation: updated.name } : item;
+      setShoppingItems((prev) => prev.map(rename));
+      setOutOfStockItems((prev) => prev.map(rename));
+    }
+  }, [setStorageLocations, setShoppingItems, setOutOfStockItems]);
+
+  const reorderStorageLocations = useCallback((fromIdx: number, toIdx: number) => {
+    setStorageLocations((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, item);
+      return next;
+    });
+  }, [setStorageLocations]);
+
+  const updateItemStorageLocation = useCallback((id: number, storageLocation: string | undefined) => {
+    setShoppingItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, storageLocation } : item)),
+    );
+    setOutOfStockItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, storageLocation } : item)),
+    );
+  }, [setShoppingItems, setOutOfStockItems]);
+
   const addCategory = useCallback((category: CategoryDef) => {
     setCategories((prev) => [...prev, category]);
   }, [setCategories]);
@@ -192,15 +254,15 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     });
   }, [setCategories]);
 
-  const addShoppingItem = useCallback((name: string, category = "", location?: string) => {
+  const addShoppingItem = useCallback((name: string, category = "", location?: string, storageLocation?: string) => {
     const id = Date.now();
-    setShoppingItems((prev) => [...prev, { id, name, category, location }]);
+    setShoppingItems((prev) => [...prev, { id, name, category, location, storageLocation }]);
     return id;
   }, [setShoppingItems]);
 
-  const addOutOfStockItem = useCallback((name: string, category = "", location?: string) => {
+  const addOutOfStockItem = useCallback((name: string, category = "", location?: string, storageLocation?: string) => {
     const id = Date.now();
-    setOutOfStockItems((prev) => [...prev, { id, name, category, location }]);
+    setOutOfStockItems((prev) => [...prev, { id, name, category, location, storageLocation }]);
     return id;
   }, [setOutOfStockItems]);
 
@@ -289,16 +351,18 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
   const resetToDefaults = useCallback(() => {
     setCategories(DEFAULT_CATEGORIES);
     setLocations(DEFAULT_LOCATIONS);
+    setStorageLocations(DEFAULT_STORAGE_LOCATIONS);
     setShoppingItems([]);
     setOutOfStockItems(DEFAULT_ITEMS);
-  }, [setCategories, setLocations, setShoppingItems, setOutOfStockItems]);
+  }, [setCategories, setLocations, setStorageLocations, setShoppingItems, setOutOfStockItems]);
 
   const clearAll = useCallback(() => {
     setCategories([]);
     setLocations([]);
+    setStorageLocations([]);
     setShoppingItems([]);
     setOutOfStockItems([]);
-  }, [setCategories, setLocations, setShoppingItems, setOutOfStockItems]);
+  }, [setCategories, setLocations, setStorageLocations, setShoppingItems, setOutOfStockItems]);
 
   return (
     <GroceryContext value={{
@@ -313,6 +377,12 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       updateLocation,
       reorderLocations,
       updateItemLocation,
+      storageLocations,
+      addStorageLocation,
+      removeStorageLocation,
+      updateStorageLocation,
+      reorderStorageLocations,
+      updateItemStorageLocation,
       shoppingItems,
       outOfStockItems,
       addShoppingItem,

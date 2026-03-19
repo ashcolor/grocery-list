@@ -36,11 +36,39 @@ function LocationTabs({ selected, onSelect }: { selected: string | null; onSelec
   );
 }
 
+function StorageLocationTabs({ selected, onSelect }: { selected: string | null; onSelect: (loc: string | null) => void }) {
+  const { storageLocations } = useGrocery();
+  if (storageLocations.length === 0) return null;
+  return (
+    <div role="tablist" className="tabs tabs-border bg-base-100 overflow-x-auto">
+      <a
+        role="tab"
+        className={`tab ${selected === null ? "tab-active" : ""}`}
+        onClick={() => onSelect(null)}
+      >
+        すべて
+      </a>
+      {storageLocations.map((loc) => (
+        <a
+          key={loc.name}
+          role="tab"
+          className={`tab ${selected === loc.name ? "tab-active" : ""}`}
+          onClick={() => onSelect(loc.name)}
+        >
+          {loc.emoji} {loc.name}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedStorageLocation, setSelectedStorageLocation] = useState<string | null>(null);
   const isListPage = location.pathname === "/" || location.pathname === "/out-of-stock";
+  const isOutOfStock = location.pathname === "/out-of-stock";
 
   return (
     <GroceryProvider>
@@ -63,11 +91,12 @@ export default function App() {
           </button>
         </div>
       )}
-      {isListPage && <LocationTabs selected={selectedLocation} onSelect={setSelectedLocation} />}
+      {isListPage && !isOutOfStock && <LocationTabs selected={selectedLocation} onSelect={setSelectedLocation} />}
+      {isListPage && isOutOfStock && <StorageLocationTabs selected={selectedStorageLocation} onSelect={setSelectedStorageLocation} />}
       <main className="container mx-auto max-w-lg p-4">
         <Routes>
           <Route path="/" element={<Home locationFilter={selectedLocation} />} />
-          <Route path="/out-of-stock" element={<OutOfStock locationFilter={selectedLocation} />} />
+          <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />

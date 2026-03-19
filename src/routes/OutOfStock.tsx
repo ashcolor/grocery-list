@@ -3,17 +3,17 @@ import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import GroceryList from "../components/GroceryList";
 
-export default function OutOfStock({ locationFilter }: { locationFilter: string | null }) {
+export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
   const { outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, reorderOutOfStockItems, moveToShopping } =
     useGrocery();
-  const filteredItems = locationFilter
-    ? outOfStockItems.filter((item) => item.location === locationFilter)
+  const filteredItems = storageLocationFilter
+    ? outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter)
     : outOfStockItems;
   const [editingNewId, setEditingNewId] = useState<number | null>(null);
 
   const handleAdd = (category?: string) => {
     if (editingNewId !== null) return;
-    const id = addOutOfStockItem("", category, locationFilter ?? undefined);
+    const id = addOutOfStockItem("", category, undefined, storageLocationFilter ?? undefined);
     setEditingNewId(id);
   };
 

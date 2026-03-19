@@ -273,7 +273,7 @@ export default function GroceryList({
   onEditNewComplete,
   onEditNewCancel,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, updateItemName } = useGrocery();
+  const { categories, updateItemCategory, reorderCategories, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -542,7 +542,7 @@ export default function GroceryList({
             {locations.length > 0 && (
               <div className="form-control mt-2">
                 <label className="label">
-                  <span className="label-text">場所</span>
+                  <span className="label-text">店</span>
                 </label>
                 <select
                   className="select select-bordered w-full"
@@ -555,6 +555,27 @@ export default function GroceryList({
                 >
                   <option value="">未設定</option>
                   {locations.map((loc) => (
+                    <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {storageLocations.length > 0 && (
+              <div className="form-control mt-2">
+                <label className="label">
+                  <span className="label-text">保管場所</span>
+                </label>
+                <select
+                  className="select select-bordered w-full"
+                  value={editingItem.storageLocation ?? ""}
+                  onChange={(e) => {
+                    const loc = e.target.value || undefined;
+                    updateItemStorageLocation(editingItem.id, loc);
+                    setEditingItem({ ...editingItem, storageLocation: loc });
+                  }}
+                >
+                  <option value="">未設定</option>
+                  {storageLocations.map((loc) => (
                     <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
                   ))}
                 </select>
