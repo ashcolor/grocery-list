@@ -44,7 +44,7 @@ function DroppableTab({
     <a
       ref={setNodeRef}
       role="tab"
-      className={`tab ${isActive ? "tab-active" : ""} ${isOver ? "bg-primary/20! border-primary!" : ""}`}
+      className={`tab whitespace-nowrap ${isActive ? "tab-active" : ""} ${isOver ? "bg-primary/20! border-primary!" : ""}`}
       onClick={onClick}
     >
       {children}
@@ -61,10 +61,10 @@ function LocationTabs({ selected, onSelect }: { selected: string | null; onSelec
         <span className="pl-3 text-xs text-base-content/50 shrink-0 flex items-center gap-1">
           <Icon icon="mdi:store" className="size-4" />
         </span>
-        <div role="tablist" className="tabs tabs-border flex-1">
+        <div role="tablist" className="tabs tabs-border flex-1 flex-nowrap">
           <a
             role="tab"
-            className={`tab ${selected === null ? "tab-active" : ""}`}
+            className={`tab whitespace-nowrap ${selected === null ? "tab-active" : ""}`}
             onClick={() => onSelect(null)}
           >
             すべて
@@ -101,10 +101,10 @@ function StorageLocationTabs({ selected, onSelect }: { selected: string | null; 
         <span className="pl-3 text-xs text-base-content/50 shrink-0 flex items-center gap-1">
           <Icon icon="mdi:package-variant" className="size-4" />
         </span>
-        <div role="tablist" className="tabs tabs-border flex-1">
+        <div role="tablist" className="tabs tabs-border flex-1 flex-nowrap">
           <a
             role="tab"
-            className={`tab ${selected === null ? "tab-active" : ""}`}
+            className={`tab whitespace-nowrap ${selected === null ? "tab-active" : ""}`}
             onClick={() => onSelect(null)}
           >
             すべて
