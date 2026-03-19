@@ -40,4 +40,5 @@
 
 .fab {
   bottom: 5.5rem;
+  z-index: 40;
 }

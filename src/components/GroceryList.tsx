@@ -396,7 +396,7 @@ export default function GroceryList({
       >
         <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-4 pt-4">
-            <div className="text-base-content/30 text-sm select-none space-y-2 px-2 leading-relaxed">
+            <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
               {mode === "shopping" ? (<>
                 <p>タップで購入済みへ</p>
                 <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
