@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import type { CategoryDef, LocationDef } from "../context/GroceryContext";
@@ -197,6 +198,7 @@ function SortableLocationItem({
 }
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { categories, addCategory, removeCategory, updateCategory, reorderCategories, locations, addLocation, removeLocation, updateLocation, reorderLocations, resetToDefaults, clearAll } = useGrocery();
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
@@ -262,6 +264,12 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">設定</h1>
+        <button className="btn btn-sm btn-ghost" aria-label="閉じる" onClick={() => navigate(-1)}>
+          <Icon icon="mdi:close" className="size-5" />
+        </button>
+      </div>
       <h2 className="text-lg font-bold">カテゴリ</h2>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCatDragEnd}>
         <SortableContext items={categories.map(c => c.name)} strategy={verticalListSortingStrategy}>
@@ -318,7 +326,7 @@ export default function Settings() {
         </button>
       )}
 
-      <h2 className="text-lg font-bold mt-6">場所</h2>
+      <h2 className="text-lg font-bold mt-6">店</h2>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLocDragEnd}>
         <SortableContext items={locations.map((l) => l.name)} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-2">
@@ -370,7 +378,7 @@ export default function Settings() {
                 }
               }
             }}
-            placeholder="場所名"
+            placeholder="店名"
           />
           <button className="btn btn-sm btn-primary" onClick={() => {
             const name = newLocName.trim();
@@ -388,7 +396,7 @@ export default function Settings() {
       ) : (
         <button className="btn btn-outline btn-sm self-start" onClick={() => setAddingLoc(true)}>
           <Icon icon="mdi:plus" className="size-4" />
-          場所を追加
+          店を追加
         </button>
       )}
 

@@ -40,7 +40,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const showTabs = location.pathname === "/";
+  const isListPage = location.pathname === "/" || location.pathname === "/out-of-stock";
 
   return (
     <GroceryProvider>
@@ -53,7 +53,17 @@ export default function App() {
           <span className="text-xl font-bold">買い物リスト</span>
         </div>
       </header>
-      {showTabs && <LocationTabs selected={selectedLocation} onSelect={setSelectedLocation} />}
+      {isListPage && (
+        <div className="flex justify-end gap-1 bg-base-100 px-2 py-1 border-b border-base-300">
+          <button className="btn btn-sm btn-ghost" aria-label="共有">
+            <Icon icon="mdi:share-variant" className="size-5" />
+          </button>
+          <button className="btn btn-sm btn-ghost" aria-label="設定" onClick={() => navigate("/settings")}>
+            <Icon icon="mdi:cog" className="size-5" />
+          </button>
+        </div>
+      )}
+      {isListPage && <LocationTabs selected={selectedLocation} onSelect={setSelectedLocation} />}
       <main className="container mx-auto max-w-lg p-4">
         <Routes>
           <Route path="/" element={<Home locationFilter={selectedLocation} />} />

@@ -140,18 +140,21 @@ function SortableCategoryGroup({
       className={`list bg-base-100 rounded-box shadow-md ${isDragging ? "opacity-50" : ""}`}
     >
       <li
-        ref={setActivatorNodeRef}
-        {...listeners}
-        className="p-4 pb-2 text-xs tracking-wide select-none cursor-grab touch-none border-b border-base-300"
+        className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-200"
       >
         <div className="flex items-center justify-between w-full">
           <span>{emoji} {category}</span>
-          <button
-            className="btn btn-xs btn-ghost btn-circle"
-            onClick={(e) => { e.stopPropagation(); onAddToCategory(category); }}
-          >
-            <Icon icon="mdi:plus" className="size-4" />
-          </button>
+          <div className="flex items-center">
+            <button
+              className="btn btn-sm btn-ghost btn-circle px-2"
+              onClick={(e) => { e.stopPropagation(); onAddToCategory(category); }}
+            >
+              <Icon icon="mdi:plus" className="size-5" />
+            </button>
+            <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab pr-3 pl-2">
+              <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30 shrink-0" />
+            </span>
+          </div>
         </div>
       </li>
       {children}
@@ -392,7 +395,16 @@ export default function GroceryList({
         }}
       >
         <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 pt-4">
+            <div className="text-base-content/30 text-sm select-none space-y-2 px-2 leading-relaxed">
+              {mode === "shopping" ? (<>
+                <p>タップで購入済みへ</p>
+                <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
+              </>) : (<>
+                <p>タップで「<Icon icon="mdi:cart-outline" className="inline size-4" /> お買いもの」リストへ</p>
+                <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
+              </>)}
+            </div>
             {namedEntries.map(([category, { emoji, items: catItems }]) => (
               <SortableCategoryGroup
                 key={category}
