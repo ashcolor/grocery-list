@@ -335,7 +335,7 @@ export default function GroceryList({
           ))}
           {unsetGroup && (
             <ul className="list bg-base-100 rounded-box shadow-md">
-              <li className="p-4 pb-2 text-xs tracking-wide select-none">
+              <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-200">
                 <div className="flex items-center justify-between w-full">
                   <span>{UNSET_EMOJI} {UNSET_LABEL}</span>
                   <button
