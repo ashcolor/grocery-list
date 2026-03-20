@@ -22,6 +22,44 @@ function StorageLocationFilter({ selected, onSelect }: { selected: string | null
   return <FilterTabs items={storageLocations} selected={selected} onSelect={onSelect} icon="mdi:package-variant" droppablePrefix="sloc" />;
 }
 
+function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
+  const { shoppingItems, outOfStockItems, showToast } = useGrocery();
+
+  const handleShare = async () => {
+    const items = isOutOfStock ? outOfStockItems : shoppingItems;
+    if (items.length === 0) {
+      showToast("共有するアイテムがありません", "mdi:alert-circle-outline");
+      return;
+    }
+    const title = isOutOfStock ? "なくなったもの" : "お買い物リスト";
+    const text = items.map((item) => `・${item.name}`).join("\n");
+    const body = `${title}\n${text}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text: body });
+      } catch (e) {
+        if ((e as DOMException).name !== "AbortError") {
+          showToast("共有に失敗しました", "mdi:alert-circle-outline");
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(body);
+        showToast("クリップボードにコピーしました", "mdi:clipboard-check-outline");
+      } catch {
+        showToast("コピーに失敗しました", "mdi:alert-circle-outline");
+      }
+    }
+  };
+
+  return (
+    <button className="btn btn-sm btn-ghost" aria-label="共有" onClick={handleShare}>
+      <Icon icon="mdi:share-variant" className="size-5" />
+    </button>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,9 +100,7 @@ export default function App() {
       </header>
       {isListPage && (
         <div className="flex justify-end gap-1 bg-base-100 px-2 py-1 border-b border-base-300">
-          <button className="btn btn-sm btn-ghost" aria-label="共有">
-            <Icon icon="mdi:share-variant" className="size-5" />
-          </button>
+          <ShareButton isOutOfStock={isOutOfStock} />
           <button className="btn btn-sm btn-ghost" aria-label="設定" onClick={() => navigate("/settings")}>
             <Icon icon="mdi:cog" className="size-5" />
           </button>
