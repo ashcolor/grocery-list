@@ -313,7 +313,7 @@ export default function App() {
   const isOutOfStock = location.pathname === "/out-of-stock";
 
   const mainContent = (
-    <main className="container mx-auto max-w-lg p-4">
+    <main className="container mx-auto max-w-lg p-4 flex-1 overflow-y-auto">
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
@@ -327,7 +327,7 @@ export default function App() {
 
   return (
     <GroceryProvider>
-    <div className="min-h-screen bg-base-200 pb-20">
+    <div className="h-screen flex flex-col bg-base-200">
       <header className="navbar bg-base-100 shadow-sm">
         <div className="flex-none">
           <HamburgerMenu />

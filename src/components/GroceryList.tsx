@@ -265,6 +265,8 @@ export default function GroceryList({
   const [checkedId, setCheckedId] = useState<number | null>(null);
 
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstItemRef = useRef<HTMLDivElement>(null);
+  const hasScrolled = useRef(false);
 
   const handleClick = useCallback((id: number) => {
     setCheckedId(id);
@@ -279,6 +281,13 @@ export default function GroceryList({
       }, 250);
     }, 300);
   }, [onItemClick]);
+
+  useEffect(() => {
+    if (!hasScrolled.current && firstItemRef.current && items.length > 0) {
+      firstItemRef.current.scrollIntoView({ block: "start" });
+      hasScrolled.current = true;
+    }
+  }, [items.length]);
 
   if (items.length === 0 && editingNewId === null) {
     return (
@@ -313,7 +322,7 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-col gap-4 pt-4 pb-40">
           <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
             {mode === "shopping" ? (<>
               <p>タップで購入済みへ</p>
@@ -323,6 +332,7 @@ export default function GroceryList({
               <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
             </>)}
           </div>
+          <div ref={firstItemRef} />
           {namedEntries.map(([category, { emoji, items: catItems }]) => (
             <SortableCategoryGroup
               key={category}
