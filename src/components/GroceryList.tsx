@@ -1,14 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { type GroceryItem, type CategoryDef } from "../context/GroceryContext";
+import type { GroceryItem, NamedItem } from "../types";
 import { useGrocery } from "../context/GroceryContext";
+import { ItemEditSheet } from "./ItemEditSheet";
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useRef, useEffect } from "react";
 
 interface GroceryListProps {
   items: GroceryItem[];
@@ -35,7 +35,7 @@ const UNSET_CATEGORY = "";
 const UNSET_LABEL = "その他";
 const UNSET_EMOJI = "🏷️";
 
-function groupByCategory(items: GroceryItem[], categories: CategoryDef[]) {
+function groupByCategory(items: GroceryItem[], categories: NamedItem[]) {
   const grouped = new Map<string, { emoji: string; items: GroceryItem[] }>();
   for (const cat of categories) {
     const catItems = items.filter((item) => item.category === cat.name);
@@ -77,7 +77,7 @@ function InlineInput({
     <input
       ref={ref}
       type="text"
-      className="input input-bordered input-sm flex-1 w-full"
+      className="input input-sm flex-1 w-full"
       placeholder="アイテム名..."
       value={value}
       onChange={(e) => setValue(e.target.value)}
@@ -259,11 +259,7 @@ export default function GroceryList({
   const { categories, updateItemCategory, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [dismissingId, setDismissingId] = useState<number | null>(null);
-  const [sheetDragY, setSheetDragY] = useState(0);
-  const sheetDragStart = useRef<number | null>(null);
-
   const [checkedId, setCheckedId] = useState<number | null>(null);
-
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstItemRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
@@ -363,162 +359,18 @@ export default function GroceryList({
       </SortableContext>
 
       {editingItem && (
-        <div className="fixed inset-0 z-50" onClick={() => setEditingItem(null)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl p-6 pb-8 max-h-[80vh] overflow-y-auto"
-            style={{
-              transform: `translateY(${sheetDragY}px)`,
-              transition: sheetDragStart.current != null ? "none" : "transform 0.25s ease-out",
-              animation: sheetDragStart.current != null ? "none" : undefined,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="w-10 h-1 bg-base-300 rounded-full mx-auto mb-4 cursor-grab touch-none"
-              onPointerDown={(e) => {
-                sheetDragStart.current = e.clientY;
-                setSheetDragY(0);
-                (e.target as HTMLElement).setPointerCapture(e.pointerId);
-              }}
-              onPointerMove={(e) => {
-                if (sheetDragStart.current == null) return;
-                const dy = e.clientY - sheetDragStart.current;
-                setSheetDragY(Math.max(0, dy));
-              }}
-              onPointerUp={() => {
-                if (sheetDragStart.current == null) return;
-                if (sheetDragY > 100) {
-                  setEditingItem(null);
-                }
-                sheetDragStart.current = null;
-                setSheetDragY(0);
-              }}
-            />
-            <div className="flex items-center gap-2 mb-4">
-              <input
-                type="text"
-                className="input input-bordered flex-1 font-bold text-lg min-w-0"
-                value={editingItem.name}
-                onChange={(e) => {
-                  setEditingItem({ ...editingItem, name: e.target.value });
-                }}
-                onBlur={() => {
-                  const trimmed = editingItem.name.trim();
-                  if (trimmed) {
-                    updateItemName(editingItem.id, trimmed);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-              />
-              <button
-                className="btn btn-ghost btn-square text-error"
-                onClick={() => {
-                  onItemRemove(editingItem.id);
-                  setEditingItem(null);
-                }}
-              >
-                <Icon icon="mdi:delete-outline" className="size-6" />
-              </button>
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">カテゴリ</span>
-              </label>
-              <select
-                className="select select-bordered w-full"
-                value={editingItem.category}
-                onChange={(e) => {
-                  const cat = e.target.value;
-                  updateItemCategory(editingItem.id, cat);
-                  setEditingItem({ ...editingItem, category: cat });
-                }}
-              >
-                <option value="">{UNSET_EMOJI} {UNSET_LABEL}</option>
-                {categories.map((cat) => (
-                  <option key={cat.name} value={cat.name}>{cat.emoji} {cat.name}</option>
-                ))}
-              </select>
-            </div>
-            {locations.length > 0 && (
-              <div className="form-control mt-2">
-                <label className="label">
-                  <span className="label-text">店</span>
-                </label>
-                <select
-                  className="select select-bordered w-full"
-                  value={editingItem.location ?? ""}
-                  onChange={(e) => {
-                    const loc = e.target.value || undefined;
-                    updateItemLocation(editingItem.id, loc);
-                    setEditingItem({ ...editingItem, location: loc });
-                  }}
-                >
-                  <option value="">未設定</option>
-                  {locations.map((loc) => (
-                    <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {storageLocations.length > 0 && (
-              <div className="form-control mt-2">
-                <label className="label">
-                  <span className="label-text">保管場所</span>
-                </label>
-                <select
-                  className="select select-bordered w-full"
-                  value={editingItem.storageLocation ?? ""}
-                  onChange={(e) => {
-                    const loc = e.target.value || undefined;
-                    updateItemStorageLocation(editingItem.id, loc);
-                    setEditingItem({ ...editingItem, storageLocation: loc });
-                  }}
-                >
-                  <option value="">未設定</option>
-                  {storageLocations.map((loc) => (
-                    <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div className="mt-4 flex flex-col gap-3 text-sm">
-              <div>
-                <p className="font-semibold text-base-content/60 mb-1">最終購入日</p>
-                {editingItem.purchaseDates && editingItem.purchaseDates.length > 0 ? (
-                  <ul className="flex flex-col gap-0.5 text-base-content/50 max-h-28 overflow-y-auto">
-                    {[...editingItem.purchaseDates].reverse().map((ts) => (
-                      <li key={ts}>{new Date(ts).toLocaleString("ja-JP")}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-base-content/30">記録なし</p>
-                )}
-              </div>
-              <div>
-                <p className="font-semibold text-base-content/60 mb-1">なくなった日</p>
-                {editingItem.outOfStockDates && editingItem.outOfStockDates.length > 0 ? (
-                  <ul className="flex flex-col gap-0.5 text-base-content/50 max-h-28 overflow-y-auto">
-                    {[...editingItem.outOfStockDates].reverse().map((ts) => (
-                      <li key={ts}>{new Date(ts).toLocaleString("ja-JP")}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-base-content/30">記録なし</p>
-                )}
-              </div>
-            </div>
-            <div className="mt-6">
-              <button className="btn btn-block" onClick={() => setEditingItem(null)}>
-                閉じる
-              </button>
-            </div>
-          </div>
-        </div>
+        <ItemEditSheet
+          item={editingItem}
+          categories={categories}
+          locations={locations}
+          storageLocations={storageLocations}
+          onUpdateName={updateItemName}
+          onUpdateCategory={updateItemCategory}
+          onUpdateLocation={updateItemLocation}
+          onUpdateStorageLocation={updateItemStorageLocation}
+          onRemove={onItemRemove}
+          onClose={() => setEditingItem(null)}
+        />
       )}
     </>
   );

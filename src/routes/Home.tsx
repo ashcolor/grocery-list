@@ -1,36 +1,27 @@
-import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router";
 import { useGrocery } from "../context/GroceryContext";
+import { useEditingNewItem } from "../hooks/useEditingNewItem";
+import { UNSET_FILTER } from "../constants";
 import GroceryList from "../components/GroceryList";
-import { UNSET_FILTER } from "../App";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
   const navigate = useNavigate();
   const { shoppingItems, addShoppingItem, updateItemName, removeShoppingItem, moveToOutOfStock } =
     useGrocery();
+
   const filteredItems = locationFilter === null
     ? shoppingItems
     : locationFilter === UNSET_FILTER
       ? shoppingItems.filter((item) => !item.location)
       : shoppingItems.filter((item) => item.location === locationFilter);
-  const [editingNewId, setEditingNewId] = useState<number | null>(null);
 
-  const handleAdd = (category?: string) => {
-    if (editingNewId !== null) return;
-    const id = addShoppingItem("", category, locationFilter ?? undefined);
-    setEditingNewId(id);
-  };
-
-  const handleEditComplete = (id: number, name: string) => {
-    updateItemName(id, name);
-    setEditingNewId(null);
-  };
-
-  const handleEditCancel = (id: number) => {
-    removeShoppingItem(id);
-    setEditingNewId(null);
-  };
+  const { editingNewId, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
+    addItem: addShoppingItem,
+    updateItemName,
+    removeItem: removeShoppingItem,
+    extraAddArgs: [locationFilter ?? undefined],
+  });
 
   return (
     <>
