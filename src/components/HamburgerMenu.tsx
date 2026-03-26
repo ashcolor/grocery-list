@@ -67,8 +67,9 @@ export function HamburgerMenu() {
 
   const menuItems = [
     { path: "/", label: "お買いもの", icon: "mdi:cart-outline" },
-    { path: "/out-of-stock", label: "なくなった", icon: "mdi:vanish" },
-    { path: "/settings", label: "設定", icon: "mdi:cog" },
+    { path: "/out-of-stock", label: "なくなった", icon: "mdi:cube-outline" },
+    { path: "/memo", label: "メモ", icon: "mdi:note-outline" },
+    { path: "/settings", label: "設定", icon: "mdi:cog-outline" },
   ];
 
   return (
@@ -111,7 +112,7 @@ export function HamburgerMenu() {
                 <Link
                   to={item.path}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-4 py-4 ${location.pathname === item.path ? "bg-base-200" : ""}`}
+                  className={`flex items-center gap-4 py-4 ${location.pathname === item.path ? "bg-base-300/30" : ""}`}
                 >
                   <Icon icon={item.icon} className="size-5 shrink-0" />
                   <span>{item.label}</span>

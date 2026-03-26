@@ -11,6 +11,7 @@ import Settings from "./routes/Settings";
 import PrivacyPolicy from "./routes/PrivacyPolicy";
 import TermsOfService from "./routes/TermsOfService";
 import OperatorInfo from "./routes/OperatorInfo";
+import Memo from "./routes/Memo";
 
 function LocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
   const { locations } = useGrocery();
@@ -73,15 +74,17 @@ export default function App() {
 
   const isListPage = location.pathname === "/" || location.pathname === "/out-of-stock";
   const isOutOfStock = location.pathname === "/out-of-stock";
+  const isMemoPage = location.pathname === "/memo";
 
   const mainContent = (
-    <main className="container mx-auto max-w-lg p-4 flex-1 overflow-y-auto">
+    <main className="container mx-auto max-w-lg p-4 pb-20 flex-1 overflow-y-auto">
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/memo" element={<Memo />} />
         <Route path="/operator" element={<OperatorInfo />} />
       </Routes>
     </main>
@@ -89,7 +92,7 @@ export default function App() {
 
   return (
     <GroceryProvider>
-    <div className="h-screen flex flex-col bg-base-200">
+    <div className="h-screen flex flex-col bg-base-100">
       <header className="navbar bg-base-100 shadow-sm">
         <div className="flex-none">
           <HamburgerMenu />
@@ -98,12 +101,25 @@ export default function App() {
           <span className="text-xl font-bold">買い物リスト</span>
         </div>
       </header>
-      {isListPage && (
-        <div className="flex justify-end gap-1 bg-base-100 px-2 py-1 border-b border-base-300">
-          <ShareButton isOutOfStock={isOutOfStock} />
-          <button className="btn btn-sm btn-ghost" aria-label="設定" onClick={() => navigate("/settings")}>
-            <Icon icon="mdi:cog" className="size-5" />
-          </button>
+      {(isListPage || isMemoPage) && (
+        <div className="flex justify-end gap-1 bg-base-100 px-2 py-1">
+          {isListPage && (
+            <>
+              <ShareButton isOutOfStock={isOutOfStock} />
+              <button className="btn btn-sm btn-ghost" aria-label="設定" onClick={() => navigate("/settings")}>
+                <Icon icon="fa6-solid:gear" className="size-5" />
+              </button>
+            </>
+          )}
+          {isMemoPage && (
+            <button
+              className="btn btn-sm btn-ghost"
+              aria-label="画像を追加"
+              onClick={() => window.dispatchEvent(new CustomEvent("memo:add-image"))}
+            >
+              <Icon icon="mdi:image-plus" className="size-5" />
+            </button>
+          )}
         </div>
       )}
       {isListPage ? (
@@ -115,6 +131,13 @@ export default function App() {
       ) : mainContent}
       <div className="dock">
         <button
+          className={location.pathname === "/memo" ? "dock-active" : ""}
+          onClick={() => navigate("/memo")}
+        >
+          <Icon icon="mdi:note-outline" className="size-6" />
+          <span className="dock-label">メモ</span>
+        </button>
+        <button
           className={location.pathname === "/" ? "dock-active" : ""}
           onClick={() => navigate("/")}
         >
@@ -125,7 +148,7 @@ export default function App() {
           className={location.pathname === "/out-of-stock" ? "dock-active" : ""}
           onClick={() => navigate("/out-of-stock")}
         >
-          <Icon icon="mdi:vanish" className="size-6" />
+          <Icon icon="mdi:cube-outline" className="size-6" />
           <span className="dock-label">なくなった</span>
         </button>
       </div>
