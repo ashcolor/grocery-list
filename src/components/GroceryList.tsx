@@ -20,6 +20,8 @@ interface GroceryListProps {
   onAddToCategory: (category: string) => void;
   onEditNewComplete: (id: number, name: string) => string | null;
   onEditNewCancel: (id: number) => void;
+  /** Items from the other list for suggestions */
+  suggestItems?: GroceryItem[];
 }
 
 function relativeDate(ts: number): string {
@@ -53,26 +55,35 @@ function groupByCategory(items: GroceryItem[], categories: NamedItem[]) {
 function InlineInput({
   onConfirm,
   onCancel,
+  suggestItems = [],
 }: {
   onConfirm: (name: string) => string | null;
   onCancel: () => void;
+  suggestItems?: GroceryItem[];
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const blurIsCancel = useRef(false);
+  const skipBlur = useRef(false);
 
   useEffect(() => {
     ref.current?.focus();
   }, []);
 
-  const handleConfirm = () => {
-    const name = value.trim();
-    if (name) {
-      const err = onConfirm(name);
+  const normalize = (s: string) =>
+    s.toLowerCase().replace(/[\u3041-\u3096]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+  const trimmed = normalize(value.trim());
+  const suggestions = trimmed
+    ? suggestItems.filter((item) => normalize(item.name).includes(trimmed)).slice(0, 5)
+    : [];
+
+  const handleConfirm = (name?: string) => {
+    const finalName = name ?? value.trim();
+    if (finalName) {
+      const err = onConfirm(finalName);
       if (err) {
         setError(err);
-        blurIsCancel.current = true;
+        skipBlur.current = true;
         ref.current?.focus();
         return;
       }
@@ -98,14 +109,34 @@ function InlineInput({
           if (e.key === "Escape") onCancel();
         }}
         onBlur={() => {
-          if (blurIsCancel.current) {
-            blurIsCancel.current = false;
+          if (skipBlur.current) {
+            skipBlur.current = false;
             return;
           }
           handleConfirm();
         }}
       />
       {error && <p className="text-error text-xs mt-1">{error}</p>}
+      {suggestions.length > 0 && (
+        <ul className="mt-1 rounded-box bg-base-100 text-base border border-base-300">
+          {suggestions.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-base-300 active:bg-base-300 rounded-box flex items-center gap-3"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  skipBlur.current = true;
+                }}
+                onClick={() => handleConfirm(item.name)}
+              >
+                <Icon icon="mdi:cart-outline" className="size-5 text-base-content/40 shrink-0" />
+                {item.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -176,6 +207,7 @@ function SortableGroceryItem({
   onEdit,
   onEditNewComplete,
   onEditNewCancel,
+  suggestItems,
 }: {
   item: GroceryItem;
   mode: "shopping" | "outOfStock";
@@ -186,6 +218,7 @@ function SortableGroceryItem({
   onEdit: (item: GroceryItem) => void;
   onEditNewComplete: (id: number, name: string) => string | null;
   onEditNewCancel: (id: number) => void;
+  suggestItems?: GroceryItem[];
 }) {
   const isEditing = editingNewId === item.id;
   const {
@@ -209,6 +242,7 @@ function SortableGroceryItem({
         <InlineInput
           onConfirm={(name) => onEditNewComplete(item.id, name)}
           onCancel={() => onEditNewCancel(item.id)}
+          suggestItems={suggestItems}
         />
       </li>
     );
@@ -275,6 +309,7 @@ export default function GroceryList({
   onAddToCategory,
   onEditNewComplete,
   onEditNewCancel,
+  suggestItems,
 }: GroceryListProps) {
   const { categories, updateItemCategory, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
@@ -330,6 +365,7 @@ export default function GroceryList({
           onEdit={setEditingItem}
           onEditNewComplete={onEditNewComplete}
           onEditNewCancel={onEditNewCancel}
+          suggestItems={suggestItems}
         />
       ))}
     </SortableContext>

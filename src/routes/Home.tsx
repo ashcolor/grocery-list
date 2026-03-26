@@ -47,6 +47,7 @@ export default function Home({ locationFilter }: { locationFilter: string | null
         onAddToCategory={(cat) => handleAdd(cat)}
         onEditNewComplete={handleEditComplete}
         onEditNewCancel={handleEditCancel}
+        suggestItems={outOfStockItems}
       />
 
       <div className="fab">

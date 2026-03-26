@@ -47,6 +47,7 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
         onAddToCategory={(cat) => handleAdd(cat)}
         onEditNewComplete={handleEditComplete}
         onEditNewCancel={handleEditCancel}
+        suggestItems={shoppingItems}
       />
 
       <div className="fab">

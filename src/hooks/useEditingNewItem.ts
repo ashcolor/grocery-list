@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { GroceryItem } from "../types";
 
 interface UseEditingNewItemOptions {
@@ -28,6 +28,20 @@ export function useEditingNewItem({
   showToast,
 }: UseEditingNewItemOptions) {
   const [editingNewId, setEditingNewId] = useState<number | null>(null);
+  const editingNewIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    editingNewIdRef.current = editingNewId;
+  }, [editingNewId]);
+
+  // Clean up placeholder item on unmount
+  useEffect(() => {
+    return () => {
+      if (editingNewIdRef.current !== null) {
+        removeItem(editingNewIdRef.current);
+      }
+    };
+  }, [removeItem]);
 
   const handleAdd = useCallback(
     (category?: string) => {
