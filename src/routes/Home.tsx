@@ -7,7 +7,7 @@ import GroceryList from "../components/GroceryList";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
   const navigate = useNavigate();
-  const { shoppingItems, addShoppingItem, updateItemName, removeShoppingItem, moveToOutOfStock } =
+  const { shoppingItems, outOfStockItems, addShoppingItem, updateItemName, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
     useGrocery();
 
   const filteredItems = locationFilter === null
@@ -21,6 +21,10 @@ export default function Home({ locationFilter }: { locationFilter: string | null
     updateItemName,
     removeItem: removeShoppingItem,
     extraAddArgs: [locationFilter ?? undefined],
+    currentItems: shoppingItems,
+    otherItems: outOfStockItems,
+    moveFromOther: moveToShopping,
+    showToast,
   });
 
   return (

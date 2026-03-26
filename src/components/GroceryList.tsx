@@ -18,7 +18,7 @@ interface GroceryListProps {
   onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
   onAddToCategory: (category: string) => void;
-  onEditNewComplete: (id: number, name: string) => void;
+  onEditNewComplete: (id: number, name: string) => string | null;
   onEditNewCancel: (id: number) => void;
 }
 
@@ -54,11 +54,13 @@ function InlineInput({
   onConfirm,
   onCancel,
 }: {
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string) => string | null;
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const blurIsCancel = useRef(false);
 
   useEffect(() => {
     ref.current?.focus();
@@ -67,26 +69,44 @@ function InlineInput({
   const handleConfirm = () => {
     const name = value.trim();
     if (name) {
-      onConfirm(name);
+      const err = onConfirm(name);
+      if (err) {
+        setError(err);
+        blurIsCancel.current = true;
+        ref.current?.focus();
+        return;
+      }
     } else {
       onCancel();
     }
   };
 
   return (
-    <input
-      ref={ref}
-      type="text"
-      className="input input-sm flex-1 w-full"
-      placeholder="アイテム名..."
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") handleConfirm();
-        if (e.key === "Escape") onCancel();
-      }}
-      onBlur={handleConfirm}
-    />
+    <div className="flex-1 w-full">
+      <input
+        ref={ref}
+        type="text"
+        className={`input input-sm w-full ${error ? "input-error" : ""}`}
+        placeholder="アイテム名..."
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          if (error) setError(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleConfirm();
+          if (e.key === "Escape") onCancel();
+        }}
+        onBlur={() => {
+          if (blurIsCancel.current) {
+            blurIsCancel.current = false;
+            return;
+          }
+          handleConfirm();
+        }}
+      />
+      {error && <p className="text-error text-xs mt-1">{error}</p>}
+    </div>
   );
 }
 
@@ -164,7 +184,7 @@ function SortableGroceryItem({
   editingNewId: number | null;
   onCheck: (id: number) => void;
   onEdit: (item: GroceryItem) => void;
-  onEditNewComplete: (id: number, name: string) => void;
+  onEditNewComplete: (id: number, name: string) => string | null;
   onEditNewCancel: (id: number) => void;
 }) {
   const isEditing = editingNewId === item.id;

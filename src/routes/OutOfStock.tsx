@@ -7,7 +7,7 @@ import GroceryList from "../components/GroceryList";
 
 export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
   const navigate = useNavigate();
-  const { outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, moveToShopping } =
+  const { shoppingItems, outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, moveToShopping, moveToOutOfStock, showToast } =
     useGrocery();
 
   const filteredItems = storageLocationFilter === null
@@ -21,6 +21,10 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
     updateItemName,
     removeItem: removeOutOfStockItem,
     extraAddArgs: [undefined, storageLocationFilter ?? undefined],
+    currentItems: outOfStockItems,
+    otherItems: shoppingItems,
+    moveFromOther: moveToOutOfStock,
+    showToast,
   });
 
   return (
