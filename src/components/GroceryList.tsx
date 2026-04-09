@@ -96,7 +96,7 @@ function InlineInput({
     <div className="flex-1 w-full">
       <input
         ref={ref}
-        type="text"
+        type="search"
         className={`input input-sm w-full ${error ? "input-error" : ""}`}
         placeholder="アイテム名..."
         value={value}
