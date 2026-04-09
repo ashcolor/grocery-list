@@ -14,12 +14,12 @@ interface GroceryListProps {
   items: GroceryItem[];
   mode: "shopping" | "outOfStock";
   emptyMessage: React.ReactNode;
-  editingNewId: number | null;
+  editingNewCategory: string | null;
   onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
   onAddToCategory: (category: string) => void;
-  onEditNewComplete: (id: number, name: string) => string | null;
-  onEditNewCancel: (id: number) => void;
+  onEditNewComplete: (name: string) => string | null;
+  onEditNewCancel: () => void;
   /** Items from the other list for suggestions */
   suggestItems?: GroceryItem[];
 }
@@ -202,25 +202,16 @@ function SortableGroceryItem({
   mode,
   dismissingId,
   checkedId,
-  editingNewId,
   onCheck,
   onEdit,
-  onEditNewComplete,
-  onEditNewCancel,
-  suggestItems,
 }: {
   item: GroceryItem;
   mode: "shopping" | "outOfStock";
   dismissingId: number | null;
   checkedId: number | null;
-  editingNewId: number | null;
   onCheck: (id: number) => void;
   onEdit: (item: GroceryItem) => void;
-  onEditNewComplete: (id: number, name: string) => string | null;
-  onEditNewCancel: (id: number) => void;
-  suggestItems?: GroceryItem[];
 }) {
-  const isEditing = editingNewId === item.id;
   const {
     attributes,
     listeners,
@@ -229,24 +220,12 @@ function SortableGroceryItem({
     transition,
     isDragging,
     setActivatorNodeRef,
-  } = useSortable({ id: item.id, disabled: isEditing });
+  } = useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
-  if (isEditing) {
-    return (
-      <li ref={setNodeRef} style={style} className="list-row" {...attributes}>
-        <InlineInput
-          onConfirm={(name) => onEditNewComplete(item.id, name)}
-          onCancel={() => onEditNewCancel(item.id)}
-          suggestItems={suggestItems}
-        />
-      </li>
-    );
-  }
 
   return (
     <li
@@ -303,7 +282,7 @@ export default function GroceryList({
   items,
   mode,
   emptyMessage,
-  editingNewId,
+  editingNewCategory,
   onItemClick,
   onItemRemove,
   onAddToCategory,
@@ -340,7 +319,7 @@ export default function GroceryList({
     }
   }, [items.length]);
 
-  if (items.length === 0 && editingNewId === null) {
+  if (items.length === 0 && editingNewCategory === null) {
     return (
       <div className="text-center text-base-content/50 py-8 space-y-2">{emptyMessage}</div>
     );
@@ -351,7 +330,17 @@ export default function GroceryList({
   const unsetGroup = grouped.get(UNSET_CATEGORY);
   const catSortableIds = namedEntries.map(([cat]) => `cat-${cat}`);
 
-  const itemList = (catItems: GroceryItem[]) => (
+  const inlineInput = (
+    <li className="list-row">
+      <InlineInput
+        onConfirm={onEditNewComplete}
+        onCancel={onEditNewCancel}
+        suggestItems={suggestItems}
+      />
+    </li>
+  );
+
+  const itemList = (category: string, catItems: GroceryItem[]) => (
     <SortableContext items={catItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
       {catItems.map((item) => (
         <SortableGroceryItem
@@ -360,14 +349,11 @@ export default function GroceryList({
           mode={mode}
           dismissingId={dismissingId}
           checkedId={checkedId}
-          editingNewId={editingNewId}
           onCheck={handleClick}
           onEdit={setEditingItem}
-          onEditNewComplete={onEditNewComplete}
-          onEditNewCancel={onEditNewCancel}
-          suggestItems={suggestItems}
         />
       ))}
+      {editingNewCategory === category && inlineInput}
     </SortableContext>
   );
 
@@ -392,7 +378,7 @@ export default function GroceryList({
               emoji={emoji}
               onAddToCategory={onAddToCategory}
             >
-              {itemList(catItems)}
+              {itemList(category, catItems)}
             </SortableCategoryGroup>
           ))}
           {unsetGroup && (
@@ -408,7 +394,7 @@ export default function GroceryList({
                   </button>
                 </div>
               </li>
-              {itemList(unsetGroup.items)}
+              {itemList(UNSET_CATEGORY, unsetGroup.items)}
             </ul>
           )}
         </div>

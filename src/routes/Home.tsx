@@ -7,7 +7,7 @@ import GroceryList from "../components/GroceryList";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
   const navigate = useNavigate();
-  const { shoppingItems, outOfStockItems, addShoppingItem, updateItemName, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
+  const { shoppingItems, outOfStockItems, addShoppingItem, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
     useGrocery();
 
   const filteredItems = locationFilter === null
@@ -16,10 +16,8 @@ export default function Home({ locationFilter }: { locationFilter: string | null
       ? shoppingItems.filter((item) => !item.location)
       : shoppingItems.filter((item) => item.location === locationFilter);
 
-  const { editingNewId, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
+  const { editingNewCategory, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
     addItem: addShoppingItem,
-    updateItemName,
-    removeItem: removeShoppingItem,
     extraAddArgs: [locationFilter ?? undefined],
     currentItems: shoppingItems,
     otherItems: outOfStockItems,
@@ -41,7 +39,7 @@ export default function Home({ locationFilter }: { locationFilter: string | null
             {" "}タブから必要なものをタップ
           </p>
         </>}
-        editingNewId={editingNewId}
+        editingNewCategory={editingNewCategory}
         onItemClick={moveToOutOfStock}
         onItemRemove={removeShoppingItem}
         onAddToCategory={(cat) => handleAdd(cat)}

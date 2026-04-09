@@ -7,7 +7,7 @@ import GroceryList from "../components/GroceryList";
 
 export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
   const navigate = useNavigate();
-  const { shoppingItems, outOfStockItems, addOutOfStockItem, updateItemName, removeOutOfStockItem, moveToShopping, moveToOutOfStock, showToast } =
+  const { shoppingItems, outOfStockItems, addOutOfStockItem, removeOutOfStockItem, moveToShopping, moveToOutOfStock, showToast } =
     useGrocery();
 
   const filteredItems = storageLocationFilter === null
@@ -16,10 +16,8 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
       ? outOfStockItems.filter((item) => !item.storageLocation)
       : outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter);
 
-  const { editingNewId, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
+  const { editingNewCategory, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
     addItem: addOutOfStockItem,
-    updateItemName,
-    removeItem: removeOutOfStockItem,
     extraAddArgs: [undefined, storageLocationFilter ?? undefined],
     currentItems: outOfStockItems,
     otherItems: shoppingItems,
@@ -41,7 +39,7 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
             {" "}タブで購入したものをタップ
           </p>
         </>}
-        editingNewId={editingNewId}
+        editingNewCategory={editingNewCategory}
         onItemClick={moveToShopping}
         onItemRemove={removeOutOfStockItem}
         onAddToCategory={(cat) => handleAdd(cat)}
