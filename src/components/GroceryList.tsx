@@ -381,7 +381,7 @@ export default function GroceryList({
               {itemList(category, catItems)}
             </SortableCategoryGroup>
           ))}
-          {unsetGroup && (
+          {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
             <ul className="list bg-base-100 rounded-box shadow-md">
               <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100">
                 <div className="flex items-center justify-between w-full">
@@ -394,7 +394,7 @@ export default function GroceryList({
                   </button>
                 </div>
               </li>
-              {itemList(UNSET_CATEGORY, unsetGroup.items)}
+              {itemList(UNSET_CATEGORY, unsetGroup?.items ?? [])}
             </ul>
           )}
         </div>
