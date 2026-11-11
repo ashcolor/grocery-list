@@ -295,7 +295,7 @@ export default function GroceryList({
   const [dismissingId, setDismissingId] = useState<number | null>(null);
   const [checkedId, setCheckedId] = useState<number | null>(null);
   const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const firstItemRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
 
   const handleClick = useCallback((id: number) => {
@@ -313,8 +313,8 @@ export default function GroceryList({
   }, [onItemClick]);
 
   useEffect(() => {
-    if (!hasScrolled.current && firstItemRef.current && items.length > 0) {
-      firstItemRef.current.scrollIntoView({ block: "start" });
+    if (!hasScrolled.current && bottomRef.current && items.length > 0) {
+      bottomRef.current.scrollIntoView({ block: "end" });
       hasScrolled.current = true;
     }
   }, [items.length]);
@@ -326,7 +326,10 @@ export default function GroceryList({
   }
 
   const grouped = groupByCategory(items, categories);
-  const namedEntries = [...grouped.entries()].filter(([cat]) => cat !== UNSET_CATEGORY);
+  // 表示は逆順（下から押しやすくするため）。データ順は変えない
+  const namedEntries = [...grouped.entries()]
+    .filter(([cat]) => cat !== UNSET_CATEGORY)
+    .reverse();
   const unsetGroup = grouped.get(UNSET_CATEGORY);
   const catSortableIds = namedEntries.map(([cat]) => `cat-${cat}`);
 
@@ -341,8 +344,9 @@ export default function GroceryList({
   );
 
   const itemList = (category: string, catItems: GroceryItem[]) => (
-    <SortableContext items={catItems.map(i => i.id)} strategy={verticalListSortingStrategy}>
-      {catItems.map((item) => (
+    <SortableContext items={[...catItems].reverse().map(i => i.id)} strategy={verticalListSortingStrategy}>
+      {editingNewCategory === category && inlineInput}
+      {[...catItems].reverse().map((item) => (
         <SortableGroceryItem
           key={item.id}
           item={item}
@@ -353,14 +357,13 @@ export default function GroceryList({
           onEdit={setEditingItem}
         />
       ))}
-      {editingNewCategory === category && inlineInput}
     </SortableContext>
   );
 
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-4 pt-4 pb-40">
+        <div className="flex flex-col gap-4 pt-4">
           <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
             {mode === "shopping" ? (<>
               <p>タップで購入済みへ</p>
@@ -370,17 +373,6 @@ export default function GroceryList({
               <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
             </>)}
           </div>
-          <div ref={firstItemRef} />
-          {namedEntries.map(([category, { emoji, items: catItems }]) => (
-            <SortableCategoryGroup
-              key={category}
-              category={category}
-              emoji={emoji}
-              onAddToCategory={onAddToCategory}
-            >
-              {itemList(category, catItems)}
-            </SortableCategoryGroup>
-          ))}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
             <ul className="list bg-base-100 rounded-box shadow-md">
               <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100">
@@ -397,8 +389,19 @@ export default function GroceryList({
               {itemList(UNSET_CATEGORY, unsetGroup?.items ?? [])}
             </ul>
           )}
+          {namedEntries.map(([category, { emoji, items: catItems }]) => (
+            <SortableCategoryGroup
+              key={category}
+              category={category}
+              emoji={emoji}
+              onAddToCategory={onAddToCategory}
+            >
+              {itemList(category, catItems)}
+            </SortableCategoryGroup>
+          ))}
         </div>
       </SortableContext>
+      <div ref={bottomRef} />
 
       {editingItem && (
         <ItemEditSheet
