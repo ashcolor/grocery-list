@@ -25,7 +25,9 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
 
   return (
     <>
+      {/* タブを切り替えたら作り直して、一番下までスクロールさせる */}
       <GroceryList
+        key={storageLocationFilter ?? ""}
         items={filteredItems}
         mode="outOfStock"
         editingNewCategory={editingNewCategory}

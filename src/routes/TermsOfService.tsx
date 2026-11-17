@@ -1,7 +1,7 @@
 export default function TermsOfService() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="card bg-base-100 shadow-sm">
+      <div className="card card-border bg-base-100">
         <div className="card-body p-4 sm:p-6">
           <h1 className="text-xl font-bold">利用規約</h1>
 

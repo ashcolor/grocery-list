@@ -33,7 +33,7 @@ export function SortableNamedItem({ item, sortableId, onClick, withImage }: Sort
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`bg-base-100 rounded-lg shadow-sm ${isDragging ? "opacity-50 z-10" : ""}`}
+      className={`bg-base-100 rounded-box border border-base-300 ${isDragging ? "opacity-50 z-10" : ""}`}
     >
       <div className="flex items-center gap-3 pr-4">
         <button

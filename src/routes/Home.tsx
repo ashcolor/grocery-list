@@ -25,7 +25,9 @@ export default function Home({ locationFilter }: { locationFilter: string | null
 
   return (
     <>
+      {/* タブを切り替えたら作り直して、一番下までスクロールさせる */}
       <GroceryList
+        key={locationFilter ?? ""}
         items={filteredItems}
         mode="shopping"
         editingNewCategory={editingNewCategory}

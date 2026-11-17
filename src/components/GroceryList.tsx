@@ -180,21 +180,28 @@ function SortableCategoryGroup({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`list bg-base-100 rounded-box shadow-md ${isDragging ? "opacity-50" : ""}`}
+      className={`list bg-base-100 rounded-box border border-base-300 ${isDragging ? "opacity-50" : ""}`}
     >
       <li
-        className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100"
+        className="pl-4 pr-0 py-1.5 select-none border-b border-base-300 bg-base-200"
       >
         <div className="flex items-center justify-between w-full">
-          <span>{emoji} {category}</span>
+          {/* アイテム行と同じく、アイコン幅（size-5）+ gap-3 で名前の開始位置を揃える */}
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="w-5 shrink-0 text-center">{emoji}</span>
+            <span className="truncate text-base-content/60">{category}</span>
+          </span>
           <div className="flex items-center">
-            <button
-              className="btn btn-sm btn-ghost btn-circle px-2"
-              onClick={(e) => { e.stopPropagation(); onAddToCategory(category); }}
-            >
-              <Icon icon="mdi:plus" className="size-5" />
-            </button>
-            <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab pr-3 pl-2">
+            {/* アイテム行のメニュー・ドラッグ列と同じ幅（w-9）にして縦に揃える */}
+            <div className="flex w-9 justify-center">
+              <button
+                className="btn btn-xs btn-ghost btn-circle"
+                onClick={(e) => { e.stopPropagation(); onAddToCategory(category); }}
+              >
+                <Icon icon="mdi:plus" className="size-5" />
+              </button>
+            </div>
+            <span ref={setActivatorNodeRef} {...listeners} className="flex w-9 justify-center touch-none cursor-grab pr-1">
               <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30 shrink-0" />
             </span>
           </div>
@@ -240,7 +247,7 @@ function SortableGroceryItem({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`flex items-stretch border-b border-base-300 select-none ${
+      className={`flex items-stretch border-b border-base-300 last:border-b-0 select-none ${
         dismissingId === item.id ? "animate-fade-out-left" : ""
       } ${isDragging ? "opacity-50 z-10" : ""}`}
     >
@@ -270,7 +277,7 @@ function SortableGroceryItem({
         </div>
       </div>
       <div
-        className="flex items-center justify-center px-2 cursor-pointer active:bg-base-300 transition-colors"
+        className="flex w-9 items-center justify-center cursor-pointer active:bg-base-300 transition-colors"
         onClick={(e) => { e.stopPropagation(); onEdit(item); }}
       >
         <Icon icon="mdi:dots-vertical" className="size-5" />
@@ -278,7 +285,7 @@ function SortableGroceryItem({
       <div
         ref={setActivatorNodeRef}
         {...listeners}
-        className="flex items-center justify-center pr-3 pl-2 touch-none cursor-grab"
+        className="flex w-9 items-center justify-center pr-1 touch-none cursor-grab"
       >
         <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30" />
       </div>
@@ -322,12 +329,16 @@ export default function GroceryList({
     }, 300);
   }, [onItemClick]);
 
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, []);
+
   useEffect(() => {
-    if (!hasScrolled.current && bottomRef.current && items.length > 0) {
-      bottomRef.current.scrollIntoView({ block: "end" });
+    if (!hasScrolled.current && items.length > 0) {
+      scrollToBottom();
       hasScrolled.current = true;
     }
-  }, [items.length]);
+  }, [items.length, scrollToBottom]);
 
   const grouped = groupByCategory(items, categories);
   // 表示は逆順（下から押しやすくするため）。データ順は変えない
@@ -368,18 +379,28 @@ export default function GroceryList({
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
         <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
-          {headerImage && <LocationCard image={headerImage} />}
+          {/* 画像の読み込みで高さが変わるので、開いたときに一番下へ合わせ直す */}
+          {headerImage && <LocationCard image={headerImage} onLoad={scrollToBottom} />}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
-            <ul className="list bg-base-100 rounded-box shadow-md">
-              <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100">
+            <ul className="list bg-base-100 rounded-box border border-base-300">
+              <li className="pl-4 pr-0 py-1.5 select-none border-b border-base-300 bg-base-200">
                 <div className="flex items-center justify-between w-full">
-                  <span>{UNSET_EMOJI} {UNSET_LABEL}</span>
-                  <button
-                    className="btn btn-xs btn-ghost btn-circle"
-                    onClick={(e) => { e.stopPropagation(); onAddToCategory(UNSET_CATEGORY); }}
-                  >
-                    <Icon icon="mdi:plus" className="size-4" />
-                  </button>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="w-5 shrink-0 text-center">{UNSET_EMOJI}</span>
+                    <span className="truncate text-base-content/60">{UNSET_LABEL}</span>
+                  </span>
+                  <div className="flex items-center">
+                    <div className="flex w-9 justify-center">
+                      <button
+                        className="btn btn-xs btn-ghost btn-circle"
+                        onClick={(e) => { e.stopPropagation(); onAddToCategory(UNSET_CATEGORY); }}
+                      >
+                        <Icon icon="mdi:plus" className="size-5" />
+                      </button>
+                    </div>
+                    {/* ドラッグ列の分の空き */}
+                    <span className="w-9" />
+                  </div>
                 </div>
               </li>
               {itemList(UNSET_CATEGORY, unsetGroup?.items ?? [])}

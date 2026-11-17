@@ -92,6 +92,7 @@ body {
 }
 
 .fab {
-  bottom: 5.5rem;
+  /* Dock（4rem + セーフエリア）の上に、横の余白（1rem）と同じ隙間を空ける */
+  bottom: calc(4rem + 1rem + env(safe-area-inset-bottom));
   z-index: 40;
 }
