@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import type { GroceryItem, NamedItem } from "../types";
 import { useGrocery } from "../context/GroceryContext";
 import { ItemEditSheet } from "./ItemEditSheet";
+import { LocationCard } from "./LocationCard";
 import {
   SortableContext,
   useSortable,
@@ -13,7 +14,6 @@ import { CSS } from "@dnd-kit/utilities";
 interface GroceryListProps {
   items: GroceryItem[];
   mode: "shopping" | "outOfStock";
-  emptyMessage: React.ReactNode;
   editingNewCategory: string | null;
   onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
@@ -22,6 +22,8 @@ interface GroceryListProps {
   onEditNewCancel: () => void;
   /** Items from the other list for suggestions */
   suggestItems?: GroceryItem[];
+  /** リストの先頭に表示する画像（店の会員カードなど） */
+  headerImage?: string;
 }
 
 function relativeDate(ts: number): string {
@@ -281,7 +283,6 @@ function SortableGroceryItem({
 export default function GroceryList({
   items,
   mode,
-  emptyMessage,
   editingNewCategory,
   onItemClick,
   onItemRemove,
@@ -289,6 +290,7 @@ export default function GroceryList({
   onEditNewComplete,
   onEditNewCancel,
   suggestItems,
+  headerImage,
 }: GroceryListProps) {
   const { categories, updateItemCategory, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
@@ -320,12 +322,6 @@ export default function GroceryList({
       hasScrolled.current = true;
     }
   }, [items.length]);
-
-  if (items.length === 0 && editingNewCategory === null) {
-    return (
-      <div className="text-center text-base-content/50 py-8 space-y-2">{emptyMessage}</div>
-    );
-  }
 
   const grouped = groupByCategory(items, categories);
   // 表示は逆順（下から押しやすくするため）。データ順は変えない
@@ -365,7 +361,8 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col justify-end min-h-full gap-4 pt-4">
+        <div className="flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
+          {headerImage && <LocationCard image={headerImage} />}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
             <ul className="list bg-base-100 rounded-box shadow-md">
               <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100">

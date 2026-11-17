@@ -5,6 +5,7 @@ import { GroceryProvider, useGrocery } from "./context/GroceryContext";
 import { HamburgerMenu } from "./components/HamburgerMenu";
 import { FilterTabs } from "./components/FilterTabs";
 import { ListDndProvider } from "./components/ListDndProvider";
+import { DuplicateItemsModal } from "./components/DuplicateItemsModal";
 import Home from "./routes/Home";
 import OutOfStock from "./routes/OutOfStock";
 import Settings from "./routes/Settings";
@@ -15,12 +16,12 @@ import Memo from "./routes/Memo";
 
 function LocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
   const { locations } = useGrocery();
-  return <FilterTabs items={locations} selected={selected} onSelect={onSelect} icon="mdi:store" droppablePrefix="loc" />;
+  return <FilterTabs items={locations} selected={selected} onSelect={onSelect} droppablePrefix="loc" />;
 }
 
 function StorageLocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
   const { storageLocations } = useGrocery();
-  return <FilterTabs items={storageLocations} selected={selected} onSelect={onSelect} icon="mdi:package-variant" droppablePrefix="sloc" />;
+  return <FilterTabs items={storageLocations} selected={selected} onSelect={onSelect} droppablePrefix="sloc" />;
 }
 
 function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
@@ -152,6 +153,7 @@ export default function App() {
           <span className="dock-label">なくなった</span>
         </button>
       </div>
+      <DuplicateItemsModal />
     </div>
     </GroceryProvider>
   );

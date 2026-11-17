@@ -42,6 +42,7 @@ export default function Settings() {
         onRemove={removeLocation}
         onUpdate={updateLocation}
         onReorder={reorderLocations}
+        withImage
       />
 
       <SettingsSection

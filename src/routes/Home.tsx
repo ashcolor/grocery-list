@@ -1,13 +1,11 @@
 import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router";
 import { useGrocery } from "../context/GroceryContext";
 import { useEditingNewItem } from "../hooks/useEditingNewItem";
 import { UNSET_FILTER } from "../constants";
 import GroceryList from "../components/GroceryList";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
-  const navigate = useNavigate();
-  const { shoppingItems, outOfStockItems, addShoppingItem, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
+  const { locations, shoppingItems, outOfStockItems, addShoppingItem, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
     useGrocery();
 
   const filteredItems = locationFilter === null
@@ -30,15 +28,6 @@ export default function Home({ locationFilter }: { locationFilter: string | null
       <GroceryList
         items={filteredItems}
         mode="shopping"
-        emptyMessage={<>
-          <p>リストは空です</p>
-          <p>
-            <button className="link link-primary inline-flex items-center gap-1" onClick={() => navigate("/out-of-stock")}>
-              <Icon icon="mdi:vanish" className="size-4" />なくなった
-            </button>
-            {" "}タブから必要なものをタップ
-          </p>
-        </>}
         editingNewCategory={editingNewCategory}
         onItemClick={moveToOutOfStock}
         onItemRemove={removeShoppingItem}
@@ -46,6 +35,7 @@ export default function Home({ locationFilter }: { locationFilter: string | null
         onEditNewComplete={handleEditComplete}
         onEditNewCancel={handleEditCancel}
         suggestItems={outOfStockItems}
+        headerImage={locations.find((l) => l.name === locationFilter)?.image}
       />
 
       <div className="fab">

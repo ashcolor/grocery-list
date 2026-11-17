@@ -1,12 +1,10 @@
 import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router";
 import { useGrocery } from "../context/GroceryContext";
 import { useEditingNewItem } from "../hooks/useEditingNewItem";
 import { UNSET_FILTER } from "../constants";
 import GroceryList from "../components/GroceryList";
 
 export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
-  const navigate = useNavigate();
   const { shoppingItems, outOfStockItems, addOutOfStockItem, removeOutOfStockItem, moveToShopping, moveToOutOfStock, showToast } =
     useGrocery();
 
@@ -30,15 +28,6 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
       <GroceryList
         items={filteredItems}
         mode="outOfStock"
-        emptyMessage={<>
-          <p>なくなったものはありません</p>
-          <p>
-            <button className="link link-primary inline-flex items-center gap-1" onClick={() => navigate("/")}>
-              <Icon icon="mdi:cart-outline" className="size-4" />お買いもの
-            </button>
-            {" "}タブで購入したものをタップ
-          </p>
-        </>}
         editingNewCategory={editingNewCategory}
         onItemClick={moveToShopping}
         onItemRemove={removeOutOfStockItem}

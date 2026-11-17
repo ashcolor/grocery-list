@@ -29,6 +29,8 @@ interface SettingsSectionProps {
   onRemove: (name: string) => void;
   onUpdate: (oldName: string, updated: NamedItem) => void;
   onReorder: (fromIdx: number, toIdx: number) => void;
+  /** 各項目に画像（会員カードなど）を設定できるようにする */
+  withImage?: boolean;
 }
 
 function sortableId(prefix: string | undefined, name: string) {
@@ -46,10 +48,12 @@ export function SettingsSection({
   onRemove,
   onUpdate,
   onReorder,
+  withImage,
 }: SettingsSectionProps) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmoji, setEditEmoji] = useState("");
+  const [editImage, setEditImage] = useState<string | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
@@ -63,13 +67,14 @@ export function SettingsSection({
     setEditingIdx(idx);
     setEditName(items[idx].name);
     setEditEmoji(items[idx].emoji);
+    setEditImage(items[idx].image);
   };
 
   const saveEdit = (oldName: string) => {
     const name = editName.trim();
     const emoji = editEmoji.trim();
     if (!name || !emoji) return;
-    onUpdate(oldName, { name, emoji });
+    onUpdate(oldName, withImage ? { name, emoji, image: editImage } : { name, emoji });
     setEditingIdx(null);
   };
 
@@ -115,6 +120,9 @@ export function SettingsSection({
                 onSaveEdit={() => saveEdit(item.name)}
                 onCancelEdit={() => setEditingIdx(null)}
                 onRemove={() => onRemove(item.name)}
+                withImage={withImage}
+                editImage={editImage}
+                onEditImage={setEditImage}
               />
             ))}
           </ul>
