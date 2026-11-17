@@ -59,7 +59,7 @@ export function DuplicateItemsModal() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate">{entry.item.name}</div>
                     <div className="text-xs text-base-content/50">
-                      {entry.list === "shopping" ? "買いもの" : "なくなった"}
+                      {entry.list === "shopping" ? "買い物" : "なくなった"}
                       {entry.item.category ? ` ・ ${entry.item.category}` : ""}
                     </div>
                   </div>

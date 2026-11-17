@@ -105,7 +105,7 @@ function SharedListLoader() {
   }, [encoded, shared, showToast, navigate, location.pathname]);
 
   if (!shared) return null;
-  const listName = shared.kind === "shopping" ? "買いもの" : "なくなった";
+  const listName = shared.kind === "shopping" ? "買い物" : "なくなった";
 
   return (
     <ConfirmModal
@@ -208,7 +208,7 @@ export default function App() {
           onClick={() => navigate("/")}
         >
           <Icon icon="mdi:cart-outline" className="size-6" />
-          <span className="dock-label">買いもの</span>
+          <span className="dock-label">買い物</span>
         </button>
         <button
           className={location.pathname === "/out-of-stock" ? "dock-active" : ""}
