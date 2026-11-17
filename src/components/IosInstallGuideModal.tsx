@@ -22,7 +22,7 @@ export function IosInstallGuideModal({ open, onClose }: IosInstallGuideModalProp
           <li className="step step-primary py-1">
             <div className="text-left text-sm leading-relaxed">
               <kbd className="kbd kbd-sm inline-flex items-center gap-1">
-                <Icon icon="lucide:share" className="size-3" />
+                <Icon icon="mdi:export-variant" className="size-3" />
                 <span>共有アイコン</span>
               </kbd>
               <span className="ml-2">(共有)をクリック</span>
@@ -32,7 +32,7 @@ export function IosInstallGuideModal({ open, onClose }: IosInstallGuideModalProp
           <li className="step step-primary py-1">
             <div className="text-left text-sm leading-relaxed">
               <kbd className="kbd kbd-sm inline-flex items-center gap-1">
-                <Icon icon="fa6-solid:chevron-down" className="size-2.5" />
+                <Icon icon="mdi:chevron-down" className="size-2.5" />
                 <span>もっと見る</span>
               </kbd>
               <span className="ml-2">をクリック</span>
@@ -42,7 +42,7 @@ export function IosInstallGuideModal({ open, onClose }: IosInstallGuideModalProp
           <li className="step step-primary py-1">
             <div className="text-left text-sm leading-relaxed">
               <kbd className="kbd kbd-sm inline-flex items-center gap-1">
-                <Icon icon="material-symbols:add-box-rounded-outline" className="size-3" />
+                <Icon icon="mdi:plus-box-outline" className="size-3" />
                 <span>ホーム画面に追加</span>
               </kbd>
               <span className="ml-2">をクリック</span>
@@ -52,7 +52,7 @@ export function IosInstallGuideModal({ open, onClose }: IosInstallGuideModalProp
           <li className="step step-primary py-1">
             <div className="text-left text-sm leading-relaxed">
               <kbd className="kbd kbd-sm inline-flex items-center gap-1">
-                <Icon icon="fa6-solid:plus" className="size-2.5" />
+                <Icon icon="mdi:plus" className="size-2.5" />
                 <span>追加</span>
               </kbd>
               <span className="ml-2">をクリック</span>

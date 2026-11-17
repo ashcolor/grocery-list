@@ -49,7 +49,7 @@ export function ItemEditSheet({
   const sheetDragStart = useRef<number | null>(null);
 
   return (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
+    <div className="fixed inset-0 z-50" onClick={onClose} data-no-swipe>
       <div className="absolute inset-0 bg-black/30" />
       <div
         className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-2xl p-6 pb-8 max-h-[80vh] overflow-y-auto"

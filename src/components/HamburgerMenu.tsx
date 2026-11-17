@@ -65,11 +65,23 @@ export function HamburgerMenu() {
     setDark(!dark);
   };
 
-  const menuItems = [
-    { path: "/", label: "お買いもの", icon: "mdi:cart-outline" },
-    { path: "/out-of-stock", label: "なくなった", icon: "mdi:cube-outline" },
-    { path: "/memo", label: "メモ", icon: "mdi:note-outline" },
-    { path: "/settings", label: "設定", icon: "mdi:cog-outline" },
+  const menuGroups = [
+    {
+      title: "マスター",
+      items: [
+        { path: "/master/locations", label: "店", icon: "mdi:store-outline" },
+        { path: "/master/categories", label: "カテゴリ", icon: "mdi:tag-outline" },
+        { path: "/master/storage-locations", label: "保管場所", icon: "mdi:package-variant" },
+      ],
+    },
+    {
+      title: "買い物",
+      items: [
+        { path: "/", label: "お買いもの", icon: "mdi:cart-outline" },
+        { path: "/out-of-stock", label: "なくなった", icon: "mdi:cube-outline" },
+        { path: "/memo", label: "メモ", icon: "mdi:note-outline" },
+      ],
+    },
   ];
 
   return (
@@ -80,7 +92,7 @@ export function HamburgerMenu() {
         onClick={() => setOpen(!open)}
         aria-label="メニュー"
       >
-            <Icon icon="fa6-solid:bars" className="size-4" />
+            <Icon icon="mdi:menu" className="size-4" />
       </button>
 
       {open && <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setOpen(false)} />}
@@ -98,31 +110,46 @@ export function HamburgerMenu() {
             aria-label="テーマ切替"
           >
             {dark ? (
-              <Icon icon="bi:moon" className="size-5" />
+              <Icon icon="mdi:weather-night" className="size-5" />
             ) : (
-              <Icon icon="bi:sun" className="size-5" />
+              <Icon icon="mdi:white-balance-sunny" className="size-5" />
             )}
           </button>
         </div>
 
-        <div>
-          <ul className="menu bg-base-100 w-full">
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-4 py-4 ${location.pathname === item.path ? "bg-base-300/30" : ""}`}
-                >
-                  <Icon icon={item.icon} className="size-5 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <div className="overflow-y-auto">
+          {menuGroups.map((group) => (
+            <ul key={group.title} className="menu bg-base-100 w-full">
+              <li className="menu-title">{group.title}</li>
+              {group.items.map((item) => (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-4 py-3 ${location.pathname === item.path ? "bg-base-300/30" : ""}`}
+                  >
+                    <Icon icon={item.icon} className="size-5 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ))}
         </div>
 
         <div className="mt-auto">
+          <ul className="menu bg-base-100 w-full">
+            <li>
+              <Link
+                to="/settings"
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-4 py-3 ${location.pathname === "/settings" ? "bg-base-300/30" : ""}`}
+              >
+                <Icon icon="mdi:cog-outline" className="size-5 shrink-0" />
+                <span>設定</span>
+              </Link>
+            </li>
+          </ul>
           {!isInstalled && (
             <div className="p-4">
               <button

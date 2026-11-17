@@ -189,7 +189,7 @@ function SortableCategoryGroup({
               <Icon icon="mdi:plus" className="size-5" />
             </button>
             <span ref={setActivatorNodeRef} {...listeners} className="touch-none cursor-grab pr-3 pl-2">
-              <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30 shrink-0" />
+              <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30 shrink-0" />
             </span>
           </div>
         </div>
@@ -274,7 +274,7 @@ function SortableGroceryItem({
         {...listeners}
         className="flex items-center justify-center pr-3 pl-2 touch-none cursor-grab"
       >
-        <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+        <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30" />
       </div>
     </li>
   );
@@ -361,7 +361,7 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
+        <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
           {headerImage && <LocationCard image={headerImage} />}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
             <ul className="list bg-base-100 rounded-box shadow-md">

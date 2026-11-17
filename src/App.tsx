@@ -1,14 +1,20 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Routes, Route, useLocation, useNavigate } from "react-router";
+import { ShareDialog } from "./components/ShareDialog";
+import { ConfirmModal } from "./components/ConfirmModal";
+import { SHARE_QUERY_KEY, buildShareText, buildShareUrl, parseSharedList } from "./utils/shareList";
 import { Icon } from "@iconify/react";
 import { GroceryProvider, useGrocery } from "./context/GroceryContext";
 import { HamburgerMenu } from "./components/HamburgerMenu";
 import { FilterTabs } from "./components/FilterTabs";
 import { ListDndProvider } from "./components/ListDndProvider";
+import { SwipeTabArea } from "./components/SwipeTabArea";
 import { DuplicateItemsModal } from "./components/DuplicateItemsModal";
 import Home from "./routes/Home";
 import OutOfStock from "./routes/OutOfStock";
 import Settings from "./routes/Settings";
+import { LocationsMaster, CategoriesMaster, StorageLocationsMaster } from "./routes/Master";
 import PrivacyPolicy from "./routes/PrivacyPolicy";
 import TermsOfService from "./routes/TermsOfService";
 import OperatorInfo from "./routes/OperatorInfo";
@@ -19,70 +25,138 @@ function LocationFilter({ selected, onSelect }: { selected: string | null; onSel
   return <FilterTabs items={locations} selected={selected} onSelect={onSelect} droppablePrefix="loc" />;
 }
 
+/** リスト画面で、左右スワイプで店・保管場所のタブを切り替える */
+function ListSwipeArea({
+  isOutOfStock,
+  selected,
+  onSelect,
+  children,
+}: {
+  isOutOfStock: boolean;
+  selected: string | null;
+  onSelect: (v: string | null) => void;
+  children: React.ReactNode;
+}) {
+  const { locations, storageLocations } = useGrocery();
+  return (
+    <SwipeTabArea items={isOutOfStock ? storageLocations : locations} selected={selected} onSelect={onSelect}>
+      {children}
+    </SwipeTabArea>
+  );
+}
+
 function StorageLocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
   const { storageLocations } = useGrocery();
   return <FilterTabs items={storageLocations} selected={selected} onSelect={onSelect} droppablePrefix="sloc" />;
 }
 
 function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
-  const { shoppingItems, outOfStockItems, showToast } = useGrocery();
+  const { shoppingItems, outOfStockItems, categories, showToast } = useGrocery();
+  const [open, setOpen] = useState(false);
 
-  const handleShare = async () => {
-    const items = isOutOfStock ? outOfStockItems : shoppingItems;
+  const items = isOutOfStock ? outOfStockItems : shoppingItems;
+  const title = isOutOfStock ? "なくなったもの" : "お買い物リスト";
+
+  const handleOpen = () => {
     if (items.length === 0) {
       showToast("共有するアイテムがありません", "mdi:alert-circle-outline");
       return;
     }
-    const title = isOutOfStock ? "なくなったもの" : "お買い物リスト";
-    const text = items.map((item) => `・${item.name}`).join("\n");
-    const body = `${title}\n${text}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, text: body });
-      } catch (e) {
-        if ((e as DOMException).name !== "AbortError") {
-          showToast("共有に失敗しました", "mdi:alert-circle-outline");
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(body);
-        showToast("クリップボードにコピーしました", "mdi:clipboard-check-outline");
-      } catch {
-        showToast("コピーに失敗しました", "mdi:alert-circle-outline");
-      }
-    }
+    setOpen(true);
   };
 
+  const d = new Date();
+  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+
   return (
-    <button className="btn btn-sm btn-ghost" aria-label="共有" onClick={handleShare}>
-      <Icon icon="mdi:share-variant" className="size-5" />
-    </button>
+    <>
+      <button className="btn btn-sm btn-ghost" aria-label="共有" onClick={handleOpen}>
+        <Icon icon="mdi:share-variant" className="size-5" />
+      </button>
+      {open && (
+        <ShareDialog
+          title={title}
+          shareText={buildShareText(title, items, categories.map((c) => c.name))}
+          shareUrl={buildShareUrl(isOutOfStock ? "outOfStock" : "shopping", items)}
+          fileName={`${title}_${ymd}`}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+/** 共有URL（?list=...）で開かれたら、リストに追加するか確認する */
+function SharedListLoader() {
+  const { importSharedItems, showToast } = useGrocery();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const encoded = new URLSearchParams(location.search).get(SHARE_QUERY_KEY);
+  const shared = encoded ? parseSharedList(encoded) : null;
+
+  // URLからクエリを外して、再読み込みで何度も聞かれないようにする
+  const clearQuery = () => navigate(location.pathname, { replace: true });
+
+  useEffect(() => {
+    if (encoded && !shared) {
+      showToast("共有URLを読み込めませんでした", "mdi:alert-circle-outline");
+      navigate(location.pathname, { replace: true });
+    }
+  }, [encoded, shared, showToast, navigate, location.pathname]);
+
+  if (!shared) return null;
+  const listName = shared.kind === "shopping" ? "お買いもの" : "なくなった";
+
+  return (
+    <ConfirmModal
+      title="共有されたリスト"
+      confirmLabel="追加"
+      onConfirm={() => {
+        const count = importSharedItems(shared.kind, shared.items);
+        showToast(
+          count > 0 ? `${count}件を「${listName}」に追加しました` : "追加するアイテムはありませんでした",
+          "mdi:cart-plus",
+        );
+        clearQuery();
+      }}
+      onCancel={clearQuery}
+    >
+      <p>「{listName}」に、次の{shared.items.length}件を追加しますか？</p>
+      <p className="text-base-content/60">すでにあるアイテムは追加しません。</p>
+      <ul className="mt-3 flex max-h-56 flex-wrap gap-1 overflow-y-auto">
+        {shared.items.map((item, index) => (
+          <li key={index} className="badge badge-ghost">
+            {item.name}
+          </li>
+        ))}
+      </ul>
+    </ConfirmModal>
   );
 }
 
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedStorageLocation, setSelectedStorageLocation] = useState<string | null>(null);
-
-  useEffect(() => {
-    setSelectedLocation(null);
-    setSelectedStorageLocation(null);
-  }, [location.pathname]);
+  // 画面を移動したり開き直したりしても、選択中のタブを維持する
+  const [selectedLocation, setSelectedLocation] = useLocalStorage<string | null>("selected-location", null);
+  const [selectedStorageLocation, setSelectedStorageLocation] = useLocalStorage<string | null>(
+    "selected-storage-location",
+    null,
+  );
 
   const isListPage = location.pathname === "/" || location.pathname === "/out-of-stock";
   const isOutOfStock = location.pathname === "/out-of-stock";
-  const isMemoPage = location.pathname === "/memo";
 
   const mainContent = (
-    <main className="container mx-auto max-w-lg p-4 pb-20 flex-1 overflow-y-auto">
+    // リスト画面では横方向のタッチをブラウザに渡さず、タブ切り替えのスワイプに使う
+    <main className={`container mx-auto max-w-lg p-4 pb-20 flex-1 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/master/locations" element={<LocationsMaster />} />
+        <Route path="/master/categories" element={<CategoriesMaster />} />
+        <Route path="/master/storage-locations" element={<StorageLocationsMaster />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/memo" element={<Memo />} />
@@ -98,36 +172,27 @@ export default function App() {
         <div className="flex-none">
           <HamburgerMenu />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 flex items-center gap-2">
+          <img src="/logo.png" alt="" className="size-7" />
           <span className="text-xl font-bold">買い物リスト</span>
         </div>
       </header>
-      {(isListPage || isMemoPage) && (
+      {isListPage && (
         <div className="flex justify-end gap-1 bg-base-100 px-2 py-1">
-          {isListPage && (
-            <>
-              <ShareButton isOutOfStock={isOutOfStock} />
-              <button className="btn btn-sm btn-ghost" aria-label="設定" onClick={() => navigate("/settings")}>
-                <Icon icon="fa6-solid:gear" className="size-5" />
-              </button>
-            </>
-          )}
-          {isMemoPage && (
-            <button
-              className="btn btn-sm btn-ghost"
-              aria-label="画像を追加"
-              onClick={() => window.dispatchEvent(new CustomEvent("memo:add-image"))}
-            >
-              <Icon icon="mdi:image-plus" className="size-5" />
-            </button>
-          )}
+          <ShareButton isOutOfStock={isOutOfStock} />
         </div>
       )}
       {isListPage ? (
         <ListDndProvider mode={isOutOfStock ? "outOfStock" : "shopping"}>
           {!isOutOfStock && <LocationFilter selected={selectedLocation} onSelect={setSelectedLocation} />}
           {isOutOfStock && <StorageLocationFilter selected={selectedStorageLocation} onSelect={setSelectedStorageLocation} />}
-          {mainContent}
+          <ListSwipeArea
+            isOutOfStock={isOutOfStock}
+            selected={isOutOfStock ? selectedStorageLocation : selectedLocation}
+            onSelect={isOutOfStock ? setSelectedStorageLocation : setSelectedLocation}
+          >
+            {mainContent}
+          </ListSwipeArea>
         </ListDndProvider>
       ) : mainContent}
       <div className="dock">
@@ -154,6 +219,7 @@ export default function App() {
         </button>
       </div>
       <DuplicateItemsModal />
+      <SharedListLoader />
     </div>
     </GroceryProvider>
   );

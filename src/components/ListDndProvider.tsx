@@ -165,7 +165,7 @@ export function ListDndProvider({
                 <Icon icon="mdi:dots-vertical" className="size-5" />
               </div>
               <div className="flex items-center justify-center pr-3 pl-2 cursor-grab">
-                <Icon icon="fa6-solid:grip-lines" className="size-4 text-base-content/30" />
+                <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30" />
               </div>
             </li>
           );

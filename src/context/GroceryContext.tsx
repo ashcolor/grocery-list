@@ -46,6 +46,7 @@ interface GroceryContextValue {
   reorderOutOfStockItems: (fromId: number, toId: number) => void;
   moveToOutOfStock: (id: number, options?: { silent?: boolean }) => void;
   moveToShopping: (id: number, options?: { silent?: boolean }) => void;
+  importSharedItems: (list: "shopping" | "outOfStock", items: { name: string; category: string }[]) => number;
 
   resetToDefaults: () => void;
   clearAll: () => void;
@@ -203,6 +204,42 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     }
   }, [outOfStockItems, setOutOfStockItems, setShoppingItems, show]);
 
+  /**
+   * 共有URLから受け取ったアイテムをまとめて追加する。追加した件数を返す。
+   * 追加先に同名があれば飛ばし、もう一方のリストにあればそちらから移動する。
+   */
+  const importSharedItems = useCallback(
+    (list: "shopping" | "outOfStock", shared: { name: string; category: string }[]) => {
+      const target = list === "shopping" ? shoppingItems : outOfStockItems;
+      const other = list === "shopping" ? outOfStockItems : shoppingItems;
+      const setTarget = list === "shopping" ? setShoppingItems : setOutOfStockItems;
+      const setOther = list === "shopping" ? setOutOfStockItems : setShoppingItems;
+      const key = (name: string) => name.trim().toLowerCase();
+
+      const seen = new Set(target.map((i) => key(i.name)));
+      const movedIds = new Set<number>();
+      const added: GroceryItem[] = [];
+      const baseId = Date.now();
+      shared.forEach((s, index) => {
+        if (!s.name.trim() || seen.has(key(s.name))) return;
+        seen.add(key(s.name));
+        const existing = other.find((i) => key(i.name) === key(s.name));
+        if (existing) {
+          movedIds.add(existing.id);
+          added.push({ ...existing, id: baseId + index });
+          return;
+        }
+        const category = categoryList.items.some((c) => c.name === s.category) ? s.category : "";
+        added.push({ id: baseId + index, name: s.name.trim(), category });
+      });
+
+      if (movedIds.size > 0) setOther((prev) => prev.filter((i) => !movedIds.has(i.id)));
+      if (added.length > 0) setTarget((prev) => [...prev, ...added]);
+      return added.length;
+    },
+    [shoppingItems, outOfStockItems, setShoppingItems, setOutOfStockItems, categoryList.items],
+  );
+
   const resetToDefaults = useCallback(() => {
     setCategories(DEFAULT_CATEGORIES);
     setLocations(DEFAULT_LOCATIONS);
@@ -253,6 +290,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       reorderOutOfStockItems,
       moveToOutOfStock,
       moveToShopping,
+      importSharedItems,
       resetToDefaults,
       clearAll,
       showToast: show,

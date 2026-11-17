@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import type { NamedItem } from "../types";
 import { SortableNamedItem } from "./SortableNamedItem";
+import { NamedItemModal } from "./NamedItemModal";
 import {
   DndContext,
   closestCenter,
@@ -18,7 +19,8 @@ import {
 } from "@dnd-kit/sortable";
 
 interface SettingsSectionProps {
-  title: string;
+  /** 省略時は見出しを出さない（ページ側で見出しを出す場合） */
+  title?: string;
   items: NamedItem[];
   /** Prefix for sortable IDs (to avoid collisions between sections) */
   idPrefix?: string;
@@ -32,6 +34,9 @@ interface SettingsSectionProps {
   /** 各項目に画像（会員カードなど）を設定できるようにする */
   withImage?: boolean;
 }
+
+/** モーダルを新規追加で開いていることを表す値（項目名と衝突しない） */
+const ADDING = "\u0000adding";
 
 function sortableId(prefix: string | undefined, name: string) {
   return prefix ? `${prefix}-${name}` : name;
@@ -50,43 +55,26 @@ export function SettingsSection({
   onReorder,
   withImage,
 }: SettingsSectionProps) {
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editEmoji, setEditEmoji] = useState("");
-  const [editImage, setEditImage] = useState<string | undefined>(undefined);
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newEmoji, setNewEmoji] = useState("");
+  /** 編集中の項目名。新規追加中は ADDING、閉じているときは null */
+  const [modalTarget, setModalTarget] = useState<string | null>(null);
+  const editingItem = items.find((i) => i.name === modalTarget);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const startEdit = (idx: number) => {
-    setEditingIdx(idx);
-    setEditName(items[idx].name);
-    setEditEmoji(items[idx].emoji);
-    setEditImage(items[idx].image);
-  };
-
-  const saveEdit = (oldName: string) => {
-    const name = editName.trim();
-    const emoji = editEmoji.trim();
-    if (!name || !emoji) return;
-    onUpdate(oldName, withImage ? { name, emoji, image: editImage } : { name, emoji });
-    setEditingIdx(null);
-  };
-
-  const handleAdd = () => {
-    const name = newName.trim();
-    const emoji = newEmoji.trim();
-    if (!name || !emoji) return;
-    if (items.some((i) => i.name === name)) return;
-    onAdd({ name, emoji });
-    setNewName("");
-    setNewEmoji("");
-    setAdding(false);
+  const handleSave = (item: NamedItem): string | null => {
+    const isDuplicate = items.some((i) => i.name === item.name && i.name !== editingItem?.name);
+    if (isDuplicate) return "同じ名前がすでにあります";
+    if (editingItem) {
+      onUpdate(editingItem.name, item);
+      // 名前を変えても同じ項目を編集し続けられるよう、追従させる
+      setModalTarget(item.name);
+    } else {
+      onAdd(item);
+    }
+    return null;
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -102,63 +90,39 @@ export function SettingsSection({
 
   return (
     <>
-      <h2 className="text-lg font-bold mt-6">{title}</h2>
+      {title && <h2 className="text-lg font-bold mt-6">{title}</h2>}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-2">
-            {items.map((item, idx) => (
+            {items.map((item) => (
               <SortableNamedItem
                 key={item.name}
                 item={item}
                 sortableId={sortableId(idPrefix, item.name)}
-                isEditing={editingIdx === idx}
-                editName={editName}
-                editEmoji={editEmoji}
-                onEditName={setEditName}
-                onEditEmoji={setEditEmoji}
-                onStartEdit={() => startEdit(idx)}
-                onSaveEdit={() => saveEdit(item.name)}
-                onCancelEdit={() => setEditingIdx(null)}
-                onRemove={() => onRemove(item.name)}
+                onClick={() => setModalTarget(item.name)}
                 withImage={withImage}
-                editImage={editImage}
-                onEditImage={setEditImage}
               />
             ))}
           </ul>
         </SortableContext>
       </DndContext>
 
-      {adding ? (
-        <div className="bg-base-100 rounded-lg px-4 py-3 shadow-sm flex items-center gap-2">
-          <input
-            type="text"
-            className="input input-sm w-16 text-center"
-            value={newEmoji}
-            onChange={(e) => setNewEmoji(e.target.value)}
-            placeholder={emojiPlaceholder}
-            autoFocus
-          />
-          <input
-            type="text"
-            className="input input-sm flex-1"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder={namePlaceholder}
-          />
-          <button className="btn btn-sm btn-primary" onClick={handleAdd}>
-            <Icon icon="mdi:check" className="size-4" />
-          </button>
-          <button className="btn btn-sm btn-ghost" onClick={() => setAdding(false)}>
-            <Icon icon="mdi:close" className="size-4" />
-          </button>
-        </div>
-      ) : (
-        <button className="btn btn-outline btn-sm self-start" onClick={() => setAdding(true)}>
-          <Icon icon="mdi:plus" className="size-4" />
-          {addLabel}
-        </button>
+      <button className="btn btn-primary btn-sm w-full" onClick={() => setModalTarget(ADDING)}>
+        <Icon icon="mdi:plus" className="size-4" />
+        {addLabel}
+      </button>
+
+      {modalTarget !== null && (
+        <NamedItemModal
+          title={editingItem ? `${editingItem.name}を編集` : addLabel}
+          initial={editingItem}
+          emojiPlaceholder={emojiPlaceholder}
+          namePlaceholder={namePlaceholder}
+          withImage={withImage}
+          onSave={handleSave}
+          onDelete={editingItem ? () => onRemove(editingItem.name) : undefined}
+          onClose={() => setModalTarget(null)}
+        />
       )}
     </>
   );
