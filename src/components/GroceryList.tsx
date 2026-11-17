@@ -299,6 +299,8 @@ export default function GroceryList({
   const hasScrolled = useRef(false);
 
   const handleClick = useCallback((id: number) => {
+    // 処理中の連打は無視する
+    if (pendingRef.current) return;
     setCheckedId(id);
 
     pendingRef.current = setTimeout(() => {
@@ -363,16 +365,7 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-4 pt-4">
-          <div className="text-base-content/30 text-sm select-none space-y-2 py-4 px-2 leading-relaxed">
-            {mode === "shopping" ? (<>
-              <p>タップで購入済みへ</p>
-              <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
-            </>) : (<>
-              <p>タップで「<Icon icon="mdi:cart-outline" className="inline size-4" /> お買いもの」リストへ</p>
-              <p><Icon icon="mdi:cog" className="inline size-4" /> からお店やカテゴリを登録可</p>
-            </>)}
-          </div>
+        <div className="flex flex-col justify-end min-h-full gap-4 pt-4">
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
             <ul className="list bg-base-100 rounded-box shadow-md">
               <li className="pl-4 pr-0 py-4 pb-2 text-xs tracking-wide select-none border-b border-base-300 bg-base-100">

@@ -174,7 +174,9 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     const newId = Date.now();
     const purchaseDates = [...(item.purchaseDates ?? []), newId].slice(-10);
     const movedItem = { ...item, id: newId, purchaseDates };
-    setOutOfStockItems((prev) => [...prev, movedItem]);
+    setOutOfStockItems((prev) =>
+      prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
+    );
     if (!options?.silent) {
       show(`${item.name} を購入済みに`, "mdi:cart-check", () => {
         setOutOfStockItems((prev) => prev.filter((i) => i.id !== newId));
@@ -190,7 +192,9 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     const newId = Date.now();
     const outOfStockDates = [...(item.outOfStockDates ?? []), newId].slice(-10);
     const movedItem = { ...item, id: newId, outOfStockDates };
-    setShoppingItems((prev) => [...prev, movedItem]);
+    setShoppingItems((prev) =>
+      prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
+    );
     if (!options?.silent) {
       show(`${item.name} をお買い物リストに追加`, "mdi:cart-plus", () => {
         setShoppingItems((prev) => prev.filter((i) => i.id !== newId));

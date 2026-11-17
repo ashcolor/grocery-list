@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import type { GroceryItem } from "../types";
+import { useGrocery } from "../context/GroceryContext";
+import { guessCategory } from "../utils/autoCategory";
 
 interface UseEditingNewItemOptions {
   addItem: (name: string, category?: string, ...rest: (string | undefined)[]) => number;
@@ -23,6 +25,7 @@ export function useEditingNewItem({
   moveFromOther,
   showToast,
 }: UseEditingNewItemOptions) {
+  const { categories } = useGrocery();
   const [editingNewCategory, setEditingNewCategory] = useState<string | null>(null);
 
   const handleAdd = useCallback(
@@ -55,11 +58,13 @@ export function useEditingNewItem({
           return null;
         }
       }
-      addItem(name, editingNewCategory ?? "", ...extraAddArgs);
+      // カテゴリ未指定（その他／右下の＋）のときだけ、名前から自動設定する
+      const category = editingNewCategory || guessCategory(name, categories);
+      addItem(name, category, ...extraAddArgs);
       setEditingNewCategory(null);
       return null;
     },
-    [addItem, editingNewCategory, extraAddArgs, currentItems, otherItems, moveFromOther, showToast],
+    [addItem, editingNewCategory, extraAddArgs, currentItems, otherItems, moveFromOther, showToast, categories],
   );
 
   const handleEditCancel = useCallback(() => {
