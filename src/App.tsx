@@ -55,7 +55,7 @@ function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
   const [open, setOpen] = useState(false);
 
   const items = isOutOfStock ? outOfStockItems : shoppingItems;
-  const title = isOutOfStock ? "なくなったもの" : "お買い物リスト";
+  const title = isOutOfStock ? "なくなったもの" : "買い物リスト";
 
   const handleOpen = () => {
     if (items.length === 0) {
@@ -105,7 +105,7 @@ function SharedListLoader() {
   }, [encoded, shared, showToast, navigate, location.pathname]);
 
   if (!shared) return null;
-  const listName = shared.kind === "shopping" ? "お買いもの" : "なくなった";
+  const listName = shared.kind === "shopping" ? "買いもの" : "なくなった";
 
   return (
     <ConfirmModal
@@ -149,7 +149,7 @@ export default function App() {
 
   const mainContent = (
     // リスト画面では横方向のタッチをブラウザに渡さず、タブ切り替えのスワイプに使う
-    <main className={`container mx-auto max-w-lg p-4 pb-20 flex-1 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
+    <main className={`container mx-auto max-w-lg p-4 pb-20 scroll-pb-20 flex-1 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
@@ -208,7 +208,7 @@ export default function App() {
           onClick={() => navigate("/")}
         >
           <Icon icon="mdi:cart-outline" className="size-6" />
-          <span className="dock-label">お買いもの</span>
+          <span className="dock-label">買いもの</span>
         </button>
         <button
           className={location.pathname === "/out-of-stock" ? "dock-active" : ""}

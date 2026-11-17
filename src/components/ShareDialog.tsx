@@ -99,9 +99,7 @@ export function ShareDialog({ title, shareText, shareUrl, fileName, onClose }: S
           >
             <Icon icon={copyIcon("url")} className="size-4" />
             <span>リストのURLをコピー</span>
-          </button>
-          <p className="text-xs text-base-content/60">開いた人は、このリストを自分のリストに追加できます。</p>
-        </section>
+          </button>        </section>
 
         <section className="flex flex-col gap-2">
           <p className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide opacity-70">

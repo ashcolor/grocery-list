@@ -69,7 +69,13 @@ function InlineInput({
   const skipBlur = useRef(false);
 
   useEffect(() => {
-    ref.current?.focus();
+    ref.current?.focus({ preventScroll: true });
+    // 画面下の Dock に隠れないよう、入力欄を画面の中央に持ってくる。
+    // スマホではキーボードが出て表示領域が縮むので、出きったあとにもう一度合わせる
+    const center = () => ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    center();
+    const timer = setTimeout(center, 350);
+    return () => clearTimeout(timer);
   }, []);
 
   const normalize = (s: string) =>

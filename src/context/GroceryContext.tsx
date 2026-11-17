@@ -197,7 +197,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
     );
     if (!options?.silent) {
-      show(`${item.name} をお買い物リストに追加`, "mdi:cart-plus", () => {
+      show(`${item.name} を買い物リストに追加`, "mdi:cart-plus", () => {
         setShoppingItems((prev) => prev.filter((i) => i.id !== newId));
         setOutOfStockItems((prev) => [...prev, item]);
       });

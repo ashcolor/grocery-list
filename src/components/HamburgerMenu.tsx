@@ -77,9 +77,9 @@ export function HamburgerMenu() {
     {
       title: "買い物",
       items: [
-        { path: "/", label: "お買いもの", icon: "mdi:cart-outline" },
-        { path: "/out-of-stock", label: "なくなった", icon: "mdi:cube-outline" },
         { path: "/memo", label: "メモ", icon: "mdi:note-outline" },
+        { path: "/", label: "買いもの", icon: "mdi:cart-outline" },
+        { path: "/out-of-stock", label: "なくなった", icon: "mdi:cube-outline" },
       ],
     },
   ];
