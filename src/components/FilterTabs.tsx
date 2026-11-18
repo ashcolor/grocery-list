@@ -8,9 +8,11 @@ interface FilterTabsProps {
   selected: string | null;
   onSelect: (value: string | null) => void;
   droppablePrefix: string;
+  /** 選択中のタブをもう一度タップしたとき（「すべて」「その他」以外） */
+  onActiveTabClick?: (item: NamedItem) => void;
 }
 
-export function FilterTabs({ items, selected, onSelect, droppablePrefix }: FilterTabsProps) {
+export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiveTabClick }: FilterTabsProps) {
   // 選択中のタブが削除・改名でなくなっていたら「すべて」に戻す
   const isMissing =
     selected !== null && selected !== UNSET_FILTER && !items.some((i) => i.name === selected);
@@ -41,7 +43,10 @@ export function FilterTabs({ items, selected, onSelect, droppablePrefix }: Filte
               key={item.name}
               id={`${droppablePrefix}-tab-${item.name}`}
               isActive={selected === item.name}
-              onClick={() => onSelect(item.name)}
+              onClick={() => {
+                if (selected === item.name && onActiveTabClick) onActiveTabClick(item);
+                else onSelect(item.name);
+              }}
             >
               {item.emoji} {item.name}
             </DroppableTab>

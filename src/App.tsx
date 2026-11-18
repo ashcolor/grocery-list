@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Routes, Route, useLocation, useNavigate } from "react-router";
 import { ShareDialog } from "./components/ShareDialog";
+import { HelpDialog } from "./components/HelpDialog";
+import { NamedItemModal } from "./components/NamedItemModal";
+import type { NamedItem } from "./types";
 import { ConfirmModal } from "./components/ConfirmModal";
 import { SHARE_QUERY_KEY, buildShareText, buildShareUrl, parseSharedList } from "./utils/shareList";
 import { Icon } from "@iconify/react";
@@ -20,9 +23,79 @@ import TermsOfService from "./routes/TermsOfService";
 import OperatorInfo from "./routes/OperatorInfo";
 import Memo from "./routes/Memo";
 
+/** 選択中のタブをもう一度タップすると、その項目（店・保管場所）を編集できるタブ */
+function EditableFilterTabs({
+  items,
+  selected,
+  onSelect,
+  droppablePrefix,
+  namePlaceholder,
+  withImage,
+  onUpdate,
+  onRemove,
+}: {
+  items: NamedItem[];
+  selected: string | null;
+  onSelect: (v: string | null) => void;
+  droppablePrefix: string;
+  namePlaceholder: string;
+  withImage?: boolean;
+  onUpdate: (oldName: string, updated: NamedItem) => void;
+  onRemove: (name: string) => void;
+}) {
+  /** 編集中の項目名。閉じているときは null */
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const editingItem = items.find((i) => i.name === editingName);
+
+  const handleSave = (item: NamedItem): string | null => {
+    if (!editingItem) return null;
+    if (items.some((i) => i.name === item.name && i.name !== editingItem.name)) return "同じ名前がすでにあります";
+    onUpdate(editingItem.name, item);
+    // 名前を変えても同じ項目を編集・選択し続けられるよう追従させる
+    setEditingName(item.name);
+    onSelect(item.name);
+    return null;
+  };
+
+  return (
+    <>
+      <FilterTabs
+        items={items}
+        selected={selected}
+        onSelect={onSelect}
+        droppablePrefix={droppablePrefix}
+        onActiveTabClick={(item) => setEditingName(item.name)}
+      />
+      {editingItem && (
+        <NamedItemModal
+          title={`${editingItem.name}を編集`}
+          initial={editingItem}
+          emojiPlaceholder="📍"
+          namePlaceholder={namePlaceholder}
+          withImage={withImage}
+          onSave={handleSave}
+          onDelete={() => onRemove(editingItem.name)}
+          onClose={() => setEditingName(null)}
+        />
+      )}
+    </>
+  );
+}
+
 function LocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
-  const { locations } = useGrocery();
-  return <FilterTabs items={locations} selected={selected} onSelect={onSelect} droppablePrefix="loc" />;
+  const { locations, updateLocation, removeLocation } = useGrocery();
+  return (
+    <EditableFilterTabs
+      items={locations}
+      selected={selected}
+      onSelect={onSelect}
+      droppablePrefix="loc"
+      namePlaceholder="店名"
+      withImage
+      onUpdate={updateLocation}
+      onRemove={removeLocation}
+    />
+  );
 }
 
 /** リスト画面で、左右スワイプで店・保管場所のタブを切り替える */
@@ -46,8 +119,18 @@ function ListSwipeArea({
 }
 
 function StorageLocationFilter({ selected, onSelect }: { selected: string | null; onSelect: (v: string | null) => void }) {
-  const { storageLocations } = useGrocery();
-  return <FilterTabs items={storageLocations} selected={selected} onSelect={onSelect} droppablePrefix="sloc" />;
+  const { storageLocations, updateStorageLocation, removeStorageLocation } = useGrocery();
+  return (
+    <EditableFilterTabs
+      items={storageLocations}
+      selected={selected}
+      onSelect={onSelect}
+      droppablePrefix="sloc"
+      namePlaceholder="保管場所名"
+      onUpdate={updateStorageLocation}
+      onRemove={removeStorageLocation}
+    />
+  );
 }
 
 function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
@@ -70,7 +153,7 @@ function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
 
   return (
     <>
-      <button className="btn btn-sm btn-ghost" aria-label="共有" onClick={handleOpen}>
+      <button className="btn btn-sm btn-ghost btn-square" aria-label="共有" onClick={handleOpen}>
         <Icon icon="mdi:share-variant" className="size-5" />
       </button>
       {open && (
@@ -82,6 +165,18 @@ function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
           onClose={() => setOpen(false)}
         />
       )}
+    </>
+  );
+}
+
+function HelpButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="btn btn-sm btn-ghost btn-square" aria-label="使い方" onClick={() => setOpen(true)}>
+        <Icon icon="mdi:information-outline" className="size-5" />
+      </button>
+      {open && <HelpDialog onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -179,6 +274,7 @@ export default function App() {
       </header>
       {isListPage && (
         <div className="flex justify-end gap-1 bg-base-100 px-2 py-1">
+          <HelpButton />
           <ShareButton isOutOfStock={isOutOfStock} />
         </div>
       )}
