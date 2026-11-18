@@ -22,6 +22,13 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
             <p>選択中のお店のタブをもう一度タップすると、お店の詳細を編集できます。</p>
             <p>画像をアップロードして会員証のバーコードを登録しておくと、そのお店のリストに表示されるので便利です。</p>
           </div>
+          <div>
+            <div className="mb-1 font-bold">データの保存</div>
+            <p>データはお使いの端末（ブラウザ）の中にだけ保存され、サーバーには送信されません。</p>
+            <p>
+              そのため、ほかの端末やブラウザとは同期されず、ブラウザのデータを消去すると消えてしまいます。機種変更のときなどは「設定」のエクスポートでバックアップしてください。
+            </p>
+          </div>
         </div>
         <div className="modal-action">
           <button type="button" className="btn btn-sm" onClick={onClose}>

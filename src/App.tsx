@@ -22,6 +22,8 @@ import PrivacyPolicy from "./routes/PrivacyPolicy";
 import TermsOfService from "./routes/TermsOfService";
 import OperatorInfo from "./routes/OperatorInfo";
 import Memo from "./routes/Memo";
+import NotFound from "./routes/NotFound";
+import { usePageMeta, isHeaderHeadingPage } from "./hooks/usePageMeta";
 
 /** 選択中のタブをもう一度タップすると、その項目（店・保管場所）を編集できるタブ */
 function EditableFilterTabs({
@@ -272,6 +274,7 @@ function SharedListLoader() {
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  usePageMeta();
   // 画面を移動したり開き直したりしても、選択中のタブを維持する
   const [selectedLocation, setSelectedLocation] = useLocalStorage<string | null>("selected-location", null);
   const [selectedStorageLocation, setSelectedStorageLocation] = useLocalStorage<string | null>(
@@ -297,6 +300,7 @@ export default function App() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/memo" element={<Memo />} />
         <Route path="/operator" element={<OperatorInfo />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </main>
   );
@@ -310,7 +314,11 @@ export default function App() {
         </div>
         <div className="flex-1 flex items-center gap-2">
           <img src="/logo.png" alt="" className="size-7" />
-          <span className="text-xl font-bold">買い物リスト</span>
+          {isHeaderHeadingPage(location.pathname) ? (
+            <h1 className="text-xl font-bold">買い物リスト</h1>
+          ) : (
+            <span className="text-xl font-bold">買い物リスト</span>
+          )}
         </div>
       </header>
       {(isListPage || isMemoPage) && (
