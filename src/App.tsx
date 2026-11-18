@@ -98,6 +98,13 @@ function LocationFilter({ selected, onSelect }: { selected: string | null; onSel
   );
 }
 
+/** ツールバー左側に並べるマスター画面へのリンク */
+const MASTER_LINKS = [
+  { path: "/master/locations", label: "店", icon: "mdi:store-outline" },
+  { path: "/master/categories", label: "カテゴリ", icon: "mdi:tag-outline" },
+  { path: "/master/storage-locations", label: "保管場所", icon: "mdi:package-variant" },
+];
+
 /** リスト画面で、左右スワイプで店・保管場所のタブを切り替える */
 function ListSwipeArea({
   isOutOfStock,
@@ -148,22 +155,55 @@ function ShareButton({ isOutOfStock }: { isOutOfStock: boolean }) {
     setOpen(true);
   };
 
-  const d = new Date();
-  const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-
   return (
     <>
       <button className="btn btn-sm btn-ghost btn-square" aria-label="共有" onClick={handleOpen}>
-        <Icon icon="mdi:share-variant" className="size-5" />
+        <Icon icon="mdi:share-variant-outline" className="size-5" />
       </button>
       {open && (
         <ShareDialog
           title={title}
           shareText={buildShareText(title, items, categories.map((c) => c.name))}
           shareUrl={buildShareUrl(isOutOfStock ? "outOfStock" : "shopping", items)}
-          fileName={`${title}_${ymd}`}
+          fileName={`${title}_${todayYmd()}`}
           onClose={() => setOpen(false)}
         />
+      )}
+    </>
+  );
+}
+
+function todayYmd() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** メモ画面の共有。メモは Memo 画面が localStorage に保存しているので、開いた時点の内容を読む */
+function MemoShareButton() {
+  const { showToast } = useGrocery();
+  const [text, setText] = useState<string | null>(null);
+
+  const handleOpen = () => {
+    let memo = "";
+    try {
+      memo = JSON.parse(localStorage.getItem("memo") ?? '""');
+    } catch {
+      // 読めなければ空として扱う
+    }
+    if (!memo.trim()) {
+      showToast("共有するメモがありません", "mdi:alert-circle-outline");
+      return;
+    }
+    setText(memo);
+  };
+
+  return (
+    <>
+      <button className="btn btn-sm btn-ghost btn-square" aria-label="共有" onClick={handleOpen}>
+        <Icon icon="mdi:share-variant-outline" className="size-5" />
+      </button>
+      {text !== null && (
+        <ShareDialog title="メモ" shareText={text} fileName={`メモ_${todayYmd()}`} onClose={() => setText(null)} />
       )}
     </>
   );
@@ -241,6 +281,7 @@ export default function App() {
 
   const isListPage = location.pathname === "/" || location.pathname === "/out-of-stock";
   const isOutOfStock = location.pathname === "/out-of-stock";
+  const isMemoPage = location.pathname === "/memo";
 
   const mainContent = (
     // リスト画面では横方向のタッチをブラウザに渡さず、タブ切り替えのスワイプに使う
@@ -272,10 +313,27 @@ export default function App() {
           <span className="text-xl font-bold">買い物リスト</span>
         </div>
       </header>
-      {isListPage && (
-        <div className="flex justify-end gap-1 bg-base-100 px-2 py-1">
-          <HelpButton />
-          <ShareButton isOutOfStock={isOutOfStock} />
+      {(isListPage || isMemoPage) && (
+        <div className="flex items-center justify-between bg-base-100 px-2 py-1">
+          <div className="flex items-center gap-1">
+            {MASTER_LINKS.map((link) => (
+              <button
+                key={link.path}
+                className="btn btn-sm btn-ghost btn-square"
+                aria-label={link.label}
+                onClick={() => navigate(link.path)}
+              >
+                <Icon icon={link.icon} className="size-5" />
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1">
+            <HelpButton />
+            {isMemoPage ? <MemoShareButton /> : <ShareButton isOutOfStock={isOutOfStock} />}
+            <button className="btn btn-sm btn-ghost btn-square" aria-label="設定" onClick={() => navigate("/settings")}>
+              <Icon icon="mdi:cog-outline" className="size-5" />
+            </button>
+          </div>
         </div>
       )}
       {isListPage ? (
@@ -296,7 +354,7 @@ export default function App() {
           className={location.pathname === "/memo" ? "dock-active" : ""}
           onClick={() => navigate("/memo")}
         >
-          <Icon icon="mdi:note-outline" className="size-6" />
+          <Icon icon="mdi:file-document-edit-outline" className="size-6" />
           <span className="dock-label">メモ</span>
         </button>
         <button

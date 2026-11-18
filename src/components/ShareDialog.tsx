@@ -17,7 +17,8 @@ const FEEDBACK_DURATION = 1400;
 interface ShareDialogProps {
   title: string;
   shareText: string;
-  shareUrl: string;
+  /** 省略時は URL 欄を出さない（メモなど） */
+  shareUrl?: string;
   /** 画像ダウンロード時のファイル名（拡張子なし） */
   fileName: string;
   onClose: () => void;
@@ -87,19 +88,22 @@ export function ShareDialog({ title, shareText, shareUrl, fileName, onClose }: S
       <div className="modal-box">
         <h3 className="mb-4 text-lg font-bold">共有</h3>
 
-        <section className="mb-4 flex flex-col gap-2">
-          <p className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide opacity-70">
-            <Icon icon="mdi:link-variant" className="size-3.5" />
-            <span>URL</span>
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary btn-soft justify-start"
-            onClick={() => void runCopyAction(() => writeText(shareUrl), "url")}
-          >
-            <Icon icon={copyIcon("url")} className="size-4" />
-            <span>リストのURLをコピー</span>
-          </button>        </section>
+        {shareUrl && (
+          <section className="mb-4 flex flex-col gap-2">
+            <p className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide opacity-70">
+              <Icon icon="mdi:link-variant" className="size-3.5" />
+              <span>URL</span>
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary btn-soft justify-start"
+              onClick={() => void runCopyAction(() => writeText(shareUrl), "url")}
+            >
+              <Icon icon={copyIcon("url")} className="size-4" />
+              <span>リストのURLをコピー</span>
+            </button>
+          </section>
+        )}
 
         <section className="flex flex-col gap-2">
           <p className="inline-flex items-center gap-1 text-xs font-semibold tracking-wide opacity-70">
@@ -142,7 +146,7 @@ export function ShareDialog({ title, shareText, shareUrl, fileName, onClose }: S
               className="btn btn-primary btn-soft justify-start"
               onClick={() => void runCopyAction(shareWithApps)}
             >
-              <Icon icon="mdi:share-variant" className="size-4" />
+              <Icon icon="mdi:share-variant-outline" className="size-4" />
               <span>ほかのアプリで共有</span>
             </button>
           )}
