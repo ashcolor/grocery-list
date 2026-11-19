@@ -14,12 +14,15 @@ export default function Home({ locationFilter }: { locationFilter: string | null
       ? shoppingItems.filter((item) => !item.location)
       : shoppingItems.filter((item) => item.location === locationFilter);
 
+  // 店のタブを選択中なら、追加・移動したアイテムにその店を設定する（「すべて」「未設定」では設定しない）
+  const tabLocation = locationFilter && locationFilter !== UNSET_FILTER ? locationFilter : undefined;
+
   const { editingNewCategory, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
     addItem: addShoppingItem,
-    extraAddArgs: [locationFilter ?? undefined],
+    extraAddArgs: [tabLocation],
     currentItems: shoppingItems,
     otherItems: outOfStockItems,
-    moveFromOther: moveToShopping,
+    moveFromOther: (id) => moveToShopping(id, tabLocation ? { patch: { location: tabLocation } } : undefined),
     showToast,
   });
 

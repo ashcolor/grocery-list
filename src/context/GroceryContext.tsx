@@ -44,13 +44,19 @@ interface GroceryContextValue {
 
   reorderShoppingItems: (fromId: number, toId: number) => void;
   reorderOutOfStockItems: (fromId: number, toId: number) => void;
-  moveToOutOfStock: (id: number, options?: { silent?: boolean }) => void;
-  moveToShopping: (id: number, options?: { silent?: boolean }) => void;
+  moveToOutOfStock: (id: number, options?: MoveOptions) => void;
+  moveToShopping: (id: number, options?: MoveOptions) => void;
   importSharedItems: (list: "shopping" | "outOfStock", items: { name: string; category: string }[]) => number;
 
   resetToDefaults: () => void;
   clearAll: () => void;
   showToast: (message: string, icon: string, onUndo?: () => void) => void;
+}
+
+/** 移動時のオプション。patch は移動先のアイテムに上書きする値（例: 選択中タブの店） */
+interface MoveOptions {
+  silent?: boolean;
+  patch?: Partial<Pick<GroceryItem, "location" | "storageLocation">>;
 }
 
 const GroceryContext = createContext<GroceryContextValue | null>(null);
@@ -168,13 +174,13 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     setOutOfStockItems((prev) => reorderById(prev, fromId, toId));
   }, [setOutOfStockItems]);
 
-  const moveToOutOfStock = useCallback((id: number, options?: { silent?: boolean }) => {
+  const moveToOutOfStock = useCallback((id: number, options?: MoveOptions) => {
     const item = shoppingItems.find((i) => i.id === id);
     if (!item) return;
     setShoppingItems((prev) => prev.filter((i) => i.id !== id));
     const newId = Date.now();
     const purchaseDates = [...(item.purchaseDates ?? []), newId].slice(-10);
-    const movedItem = { ...item, id: newId, purchaseDates };
+    const movedItem = { ...item, ...options?.patch, id: newId, purchaseDates };
     setOutOfStockItems((prev) =>
       prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
     );
@@ -186,13 +192,13 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     }
   }, [shoppingItems, setShoppingItems, setOutOfStockItems, show]);
 
-  const moveToShopping = useCallback((id: number, options?: { silent?: boolean }) => {
+  const moveToShopping = useCallback((id: number, options?: MoveOptions) => {
     const item = outOfStockItems.find((i) => i.id === id);
     if (!item) return;
     setOutOfStockItems((prev) => prev.filter((i) => i.id !== id));
     const newId = Date.now();
     const outOfStockDates = [...(item.outOfStockDates ?? []), newId].slice(-10);
-    const movedItem = { ...item, id: newId, outOfStockDates };
+    const movedItem = { ...item, ...options?.patch, id: newId, outOfStockDates };
     setShoppingItems((prev) =>
       prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
     );

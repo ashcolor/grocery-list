@@ -14,12 +14,16 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
       ? outOfStockItems.filter((item) => !item.storageLocation)
       : outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter);
 
+  // 保管場所のタブを選択中なら、追加・移動したアイテムにその保管場所を設定する（「すべて」「未設定」では設定しない）
+  const tabStorageLocation = storageLocationFilter && storageLocationFilter !== UNSET_FILTER ? storageLocationFilter : undefined;
+
   const { editingNewCategory, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
     addItem: addOutOfStockItem,
-    extraAddArgs: [undefined, storageLocationFilter ?? undefined],
+    extraAddArgs: [undefined, tabStorageLocation],
     currentItems: outOfStockItems,
     otherItems: shoppingItems,
-    moveFromOther: moveToOutOfStock,
+    moveFromOther: (id) =>
+      moveToOutOfStock(id, tabStorageLocation ? { patch: { storageLocation: tabStorageLocation } } : undefined),
     showToast,
   });
 
