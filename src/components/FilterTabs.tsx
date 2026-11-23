@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { UNSET_FILTER } from "../constants";
+import { UNSET_FILTER, UNSET_PLACE_LABEL } from "../constants";
 import type { NamedItem } from "../types";
 import { DroppableTab } from "./DroppableTab";
 
@@ -8,14 +8,15 @@ interface FilterTabsProps {
   selected: string | null;
   onSelect: (value: string | null) => void;
   droppablePrefix: string;
-  /** 選択中のタブをもう一度タップしたとき（「すべて」「その他」以外） */
+  /** 選択中のタブをもう一度タップしたとき（「すべて」「未設定」以外） */
   onActiveTabClick?: (item: NamedItem) => void;
 }
 
 export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiveTabClick }: FilterTabsProps) {
   // 選択中のタブが削除・改名でなくなっていたら「すべて」に戻す
+  // 項目が1つもなくなったら、タブ自体が出ないので「未設定」も含めて戻す
   const isMissing =
-    selected !== null && selected !== UNSET_FILTER && !items.some((i) => i.name === selected);
+    selected !== null && (items.length === 0 || (selected !== UNSET_FILTER && !items.some((i) => i.name === selected)));
   useEffect(() => {
     if (isMissing) onSelect(null);
   }, [isMissing, onSelect]);
@@ -30,7 +31,7 @@ export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiv
   return (
     <div ref={scrollRef} className="bg-base-100 overflow-x-auto">
       <div className="flex items-center">
-        <div role="tablist" className="tabs tabs-border flex-1 flex-nowrap">
+        <div role="tablist" className="tabs tabs-border tabs-sm flex-1 flex-nowrap">
           <a
             role="tab"
             className={`tab whitespace-nowrap ${selected === null ? "tab-active" : ""}`}
@@ -56,7 +57,7 @@ export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiv
             isActive={selected === UNSET_FILTER}
             onClick={() => onSelect(UNSET_FILTER)}
           >
-            その他
+            {UNSET_PLACE_LABEL}
           </DroppableTab>
         </div>
       </div>

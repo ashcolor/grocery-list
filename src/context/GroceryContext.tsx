@@ -9,6 +9,7 @@ import {
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useNamedItemList } from "../hooks/useNamedItemList";
 import { useToast } from "../hooks/useToast";
+import { ToastContainer } from "../components/ToastContainer";
 
 interface GroceryContextValue {
   categories: NamedItem[];
@@ -46,7 +47,11 @@ interface GroceryContextValue {
   reorderOutOfStockItems: (fromId: number, toId: number) => void;
   moveToOutOfStock: (id: number, options?: MoveOptions) => void;
   moveToShopping: (id: number, options?: MoveOptions) => void;
-  importSharedItems: (list: "shopping" | "outOfStock", items: { name: string; category: string }[]) => number;
+  importSharedItems: (
+    list: "shopping" | "outOfStock",
+    items: { name: string; category: string }[],
+    patch?: MoveOptions["patch"],
+  ) => number;
 
   resetToDefaults: () => void;
   clearAll: () => void;
@@ -80,7 +85,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     "out-of-stock-items",
     [],
   );
-  const { show, ToastContainer } = useToast();
+  const { toasts, show, dismiss } = useToast();
 
   const itemSetters = useMemo(
     () => [setShoppingItems, setOutOfStockItems],
@@ -213,9 +218,10 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
   /**
    * 共有URLから受け取ったアイテムをまとめて追加する。追加した件数を返す。
    * 追加先に同名があれば飛ばし、もう一方のリストにあればそちらから移動する。
+   * patch を渡すと、追加・移動したアイテムに上書きする（選択中タブの店など）。
    */
   const importSharedItems = useCallback(
-    (list: "shopping" | "outOfStock", shared: { name: string; category: string }[]) => {
+    (list: "shopping" | "outOfStock", shared: { name: string; category: string }[], patch?: MoveOptions["patch"]) => {
       const target = list === "shopping" ? shoppingItems : outOfStockItems;
       const other = list === "shopping" ? outOfStockItems : shoppingItems;
       const setTarget = list === "shopping" ? setShoppingItems : setOutOfStockItems;
@@ -232,11 +238,11 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
         const existing = other.find((i) => key(i.name) === key(s.name));
         if (existing) {
           movedIds.add(existing.id);
-          added.push({ ...existing, id: baseId + index });
+          added.push({ ...existing, ...patch, id: baseId + index });
           return;
         }
         const category = categoryList.items.some((c) => c.name === s.category) ? s.category : "";
-        added.push({ id: baseId + index, name: s.name.trim(), category });
+        added.push({ id: baseId + index, name: s.name.trim(), category, ...patch });
       });
 
       if (movedIds.size > 0) setOther((prev) => prev.filter((i) => !movedIds.has(i.id)));
@@ -302,7 +308,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       showToast: show,
     }}>
       {children}
-      <ToastContainer />
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </GroceryContext>
   );
 }

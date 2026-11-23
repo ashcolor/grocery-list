@@ -2,20 +2,29 @@ import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import { useEditingNewItem } from "../hooks/useEditingNewItem";
 import { UNSET_FILTER } from "../constants";
+import { matchesPlaceFilter, placeLabel } from "../utils/placeFilter";
 import GroceryList from "../components/GroceryList";
 
 export default function OutOfStock({ storageLocationFilter }: { storageLocationFilter: string | null }) {
-  const { shoppingItems, outOfStockItems, addOutOfStockItem, removeOutOfStockItem, moveToShopping, moveToOutOfStock, showToast } =
-    useGrocery();
+  const {
+    storageLocations,
+    shoppingItems,
+    outOfStockItems,
+    addOutOfStockItem,
+    removeOutOfStockItem,
+    moveToShopping,
+    moveToOutOfStock,
+    updateItemStorageLocation,
+    showToast,
+  } = useGrocery();
 
-  const filteredItems = storageLocationFilter === null
-    ? outOfStockItems
-    : storageLocationFilter === UNSET_FILTER
-      ? outOfStockItems.filter((item) => !item.storageLocation)
-      : outOfStockItems.filter((item) => item.storageLocation === storageLocationFilter);
+  const filteredItems = outOfStockItems.filter((item) =>
+    matchesPlaceFilter(item.storageLocation, storageLocationFilter),
+  );
 
   // 保管場所のタブを選択中なら、追加・移動したアイテムにその保管場所を設定する（「すべて」「未設定」では設定しない）
-  const tabStorageLocation = storageLocationFilter && storageLocationFilter !== UNSET_FILTER ? storageLocationFilter : undefined;
+  const tabStorageLocation =
+    storageLocationFilter && storageLocationFilter !== UNSET_FILTER ? storageLocationFilter : undefined;
 
   const { editingNewCategory, handleAdd, handleEditComplete, handleEditCancel } = useEditingNewItem({
     addItem: addOutOfStockItem,
@@ -25,6 +34,17 @@ export default function OutOfStock({ storageLocationFilter }: { storageLocationF
     moveFromOther: (id) =>
       moveToOutOfStock(id, tabStorageLocation ? { patch: { storageLocation: tabStorageLocation } } : undefined),
     showToast,
+    isInCurrentTab: (item) => matchesPlaceFilter(item.storageLocation, storageLocationFilter),
+    describeTab: (item) => placeLabel(item.storageLocation, storageLocations),
+    moveToCurrentTabLabel: tabStorageLocation ? `${tabStorageLocation}に移動` : "未設定にする",
+    moveToCurrentTab: (item) => {
+      updateItemStorageLocation(item.id, tabStorageLocation);
+      showToast(
+        `${item.name}の保管場所を${placeLabel(tabStorageLocation, storageLocations)}に変更`,
+        "mdi:package-variant",
+        () => updateItemStorageLocation(item.id, item.storageLocation),
+      );
+    },
   });
 
   return (

@@ -2,17 +2,23 @@ import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import { useEditingNewItem } from "../hooks/useEditingNewItem";
 import { UNSET_FILTER } from "../constants";
+import { matchesPlaceFilter, placeLabel } from "../utils/placeFilter";
 import GroceryList from "../components/GroceryList";
 
 export default function Home({ locationFilter }: { locationFilter: string | null }) {
-  const { locations, shoppingItems, outOfStockItems, addShoppingItem, removeShoppingItem, moveToOutOfStock, moveToShopping, showToast } =
-    useGrocery();
+  const {
+    locations,
+    shoppingItems,
+    outOfStockItems,
+    addShoppingItem,
+    removeShoppingItem,
+    moveToOutOfStock,
+    moveToShopping,
+    updateItemLocation,
+    showToast,
+  } = useGrocery();
 
-  const filteredItems = locationFilter === null
-    ? shoppingItems
-    : locationFilter === UNSET_FILTER
-      ? shoppingItems.filter((item) => !item.location)
-      : shoppingItems.filter((item) => item.location === locationFilter);
+  const filteredItems = shoppingItems.filter((item) => matchesPlaceFilter(item.location, locationFilter));
 
   // 店のタブを選択中なら、追加・移動したアイテムにその店を設定する（「すべて」「未設定」では設定しない）
   const tabLocation = locationFilter && locationFilter !== UNSET_FILTER ? locationFilter : undefined;
@@ -24,6 +30,15 @@ export default function Home({ locationFilter }: { locationFilter: string | null
     otherItems: outOfStockItems,
     moveFromOther: (id) => moveToShopping(id, tabLocation ? { patch: { location: tabLocation } } : undefined),
     showToast,
+    isInCurrentTab: (item) => matchesPlaceFilter(item.location, locationFilter),
+    describeTab: (item) => placeLabel(item.location, locations),
+    moveToCurrentTabLabel: tabLocation ? `${tabLocation}に移動` : "未設定にする",
+    moveToCurrentTab: (item) => {
+      updateItemLocation(item.id, tabLocation);
+      showToast(`${item.name}の店を${placeLabel(tabLocation, locations)}に変更`, "mdi:store", () =>
+        updateItemLocation(item.id, item.location),
+      );
+    },
   });
 
   return (

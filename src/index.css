@@ -3,10 +3,15 @@
   themes: light --default, dark --prefersdark;
 }
 
-/* 左右スワイプでタブを切り替えるため、ブラウザのスワイプで戻る／進むを無効にする */
+/*
+ * 左右スワイプでタブを切り替えるため、ブラウザのスワイプで戻る／進むを無効にする。
+ * また、ヘッダーを常に表示するためページ全体はスクロールさせず、スクロールは main の中だけで行う。
+ */
 html,
 body {
-  overscroll-behavior-x: none;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /*

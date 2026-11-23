@@ -24,6 +24,7 @@ import OperatorInfo from "./routes/OperatorInfo";
 import Memo from "./routes/Memo";
 import NotFound from "./routes/NotFound";
 import { usePageMeta, isHeaderHeadingPage } from "./hooks/usePageMeta";
+import { UNSET_FILTER } from "./constants";
 
 /** 選択中のタブをもう一度タップすると、その項目（店・保管場所）を編集できるタブ */
 function EditableFilterTabs({
@@ -223,8 +224,17 @@ function HelpButton() {
   );
 }
 
-/** 共有URL（?list=...）で開かれたら、リストに追加するか確認する */
-function SharedListLoader() {
+/**
+ * 共有URL（?list=...）で開かれたら、リストに追加するか確認する。
+ * 店・保管場所のタブを選択中なら、追加したアイテムをそのタブに入れる
+ */
+function SharedListLoader({
+  selectedLocation,
+  selectedStorageLocation,
+}: {
+  selectedLocation: string | null;
+  selectedStorageLocation: string | null;
+}) {
   const { importSharedItems, showToast } = useGrocery();
   const location = useLocation();
   const navigate = useNavigate();
@@ -249,7 +259,10 @@ function SharedListLoader() {
       title="共有されたリスト"
       confirmLabel="追加"
       onConfirm={() => {
-        const count = importSharedItems(shared.kind, shared.items);
+        const tab = shared.kind === "shopping" ? selectedLocation : selectedStorageLocation;
+        const place = tab && tab !== UNSET_FILTER ? tab : undefined;
+        const patch = place ? (shared.kind === "shopping" ? { location: place } : { storageLocation: place }) : undefined;
+        const count = importSharedItems(shared.kind, shared.items, patch);
         showToast(
           count > 0 ? `${count}件を「${listName}」に追加しました` : "追加するアイテムはありませんでした",
           "mdi:cart-plus",
@@ -288,7 +301,7 @@ export default function App() {
 
   const mainContent = (
     // リスト画面では横方向のタッチをブラウザに渡さず、タブ切り替えのスワイプに使う
-    <main className={`container mx-auto max-w-lg p-4 pb-20 scroll-pb-20 flex-1 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
+    <main className={`container mx-auto max-w-lg px-4 pb-16 scroll-pb-16 flex-1 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
@@ -307,8 +320,10 @@ export default function App() {
 
   return (
     <GroceryProvider>
-    <div className="h-screen flex flex-col bg-base-100">
-      <header className="navbar bg-base-100 shadow-sm">
+    {/* モバイルのアドレスバーやキーボードで画面の高さが変わってもページ全体がスクロールしないよう、
+        表示領域の高さ（dvh）に固定してスクロールは main の中だけで行う */}
+    <div className="h-dvh flex flex-col overflow-hidden bg-base-100">
+      <header className="navbar bg-base-100 shadow-sm shrink-0">
         <div className="flex-none">
           <HamburgerMenu />
         </div>
@@ -322,7 +337,8 @@ export default function App() {
         </div>
       </header>
       {(isListPage || isMemoPage) && (
-        <div className="flex items-center justify-between bg-base-100 px-2 py-1">
+        // ボタン内の余白（6px）と合わせて、アイコンが main の左右パディング（16px）に揃うようにする
+        <div className="flex items-center justify-between bg-base-100 px-2.5">
           <div className="flex items-center gap-1">
             {MASTER_LINKS.map((link) => (
               <button
@@ -381,7 +397,7 @@ export default function App() {
         </button>
       </div>
       <DuplicateItemsModal />
-      <SharedListLoader />
+      <SharedListLoader selectedLocation={selectedLocation} selectedStorageLocation={selectedStorageLocation} />
     </div>
     </GroceryProvider>
   );

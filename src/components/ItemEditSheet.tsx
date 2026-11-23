@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Icon } from "@iconify/react";
 import type { GroceryItem, NamedItem } from "../types";
+import { UNSET_PLACE_LABEL } from "../constants";
 
 interface ItemEditSheetProps {
   item: GroceryItem;
@@ -8,6 +9,8 @@ interface ItemEditSheetProps {
   locations: NamedItem[];
   storageLocations: NamedItem[];
   onUpdateName: (id: number, name: string) => void;
+  /** 同じ名前のアイテムがほかにあるか */
+  isDuplicateName: (id: number, name: string) => boolean;
   onUpdateCategory: (id: number, category: string) => void;
   onUpdateLocation: (id: number, location: string | undefined) => void;
   onUpdateStorageLocation: (id: number, storageLocation: string | undefined) => void;
@@ -38,6 +41,7 @@ export function ItemEditSheet({
   locations,
   storageLocations,
   onUpdateName,
+  isDuplicateName,
   onUpdateCategory,
   onUpdateLocation,
   onUpdateStorageLocation,
@@ -45,6 +49,9 @@ export function ItemEditSheet({
   onClose,
 }: ItemEditSheetProps) {
   const [item, setItem] = useState(initialItem);
+  /** 保存済みの名前。空や重複で保存できなかったときはこれに戻す */
+  const [savedName, setSavedName] = useState(initialItem.name);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [sheetDragY, setSheetDragY] = useState(0);
   const sheetDragStart = useRef<number | null>(null);
 
@@ -84,12 +91,26 @@ export function ItemEditSheet({
         <div className="flex items-center gap-2 mb-4">
           <input
             type="text"
-            className="input flex-1 font-bold text-lg min-w-0"
+            className={`input flex-1 font-bold text-lg min-w-0 ${nameError ? "input-error" : ""}`}
             value={item.name}
-            onChange={(e) => setItem({ ...item, name: e.target.value })}
+            onChange={(e) => {
+              setItem({ ...item, name: e.target.value });
+              setNameError(null);
+            }}
             onBlur={() => {
               const trimmed = item.name.trim();
-              if (trimmed) onUpdateName(item.id, trimmed);
+              if (!trimmed) {
+                setItem({ ...item, name: savedName });
+                return;
+              }
+              if (trimmed.toLowerCase() !== savedName.toLowerCase() && isDuplicateName(item.id, trimmed)) {
+                setNameError(`「${trimmed}」は既にあるので変更できません`);
+                setItem({ ...item, name: savedName });
+                return;
+              }
+              onUpdateName(item.id, trimmed);
+              setSavedName(trimmed);
+              setItem({ ...item, name: trimmed });
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -102,6 +123,8 @@ export function ItemEditSheet({
             <Icon icon="mdi:delete-outline" className="size-6" />
           </button>
         </div>
+
+        {nameError && <p className="-mt-2 mb-2 text-sm text-error">{nameError}</p>}
 
         <fieldset className="fieldset">
           <label className="fieldset-legend">カテゴリ</label>
@@ -133,7 +156,7 @@ export function ItemEditSheet({
                 setItem({ ...item, location: loc });
               }}
             >
-              <option value="">未設定</option>
+              <option value="">{UNSET_PLACE_LABEL}</option>
               {locations.map((loc) => (
                 <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
               ))}
@@ -153,7 +176,7 @@ export function ItemEditSheet({
                 setItem({ ...item, storageLocation: loc });
               }}
             >
-              <option value="">未設定</option>
+              <option value="">{UNSET_PLACE_LABEL}</option>
               {storageLocations.map((loc) => (
                 <option key={loc.name} value={loc.name}>{loc.emoji} {loc.name}</option>
               ))}

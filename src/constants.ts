@@ -2,6 +2,9 @@ import type { NamedItem, GroceryItem } from "./types";
 
 export const UNSET_FILTER = "__unset__";
 
+/** 店・保管場所が設定されていないときの表示名（カテゴリなしの「その他」とは区別する） */
+export const UNSET_PLACE_LABEL = "未設定";
+
 export const DEFAULT_CATEGORIES: NamedItem[] = [
   { name: "肉・魚", emoji: "🥩" },
   { name: "野菜・果物", emoji: "🥬" },

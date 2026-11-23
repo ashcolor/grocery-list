@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
+import { placeLabel } from "../utils/placeFilter";
 import {
   DndContext,
   closestCenter,
@@ -12,7 +13,6 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
-  type DragOverEvent,
   type CollisionDetection,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -56,23 +56,13 @@ export function ListDndProvider({
         const catOnly = within.filter((c) => String(c.id).startsWith("cat-"));
         return catOnly.length > 0 ? catOnly : within;
       }
-      return within;
+      // アイテムを動かしているときは、カテゴリの枠よりアイテムを優先する
+      const itemsOnly = within.filter((c) => typeof c.id === "number");
+      return itemsOnly.length > 0 ? itemsOnly : within;
     }
     if (typeof args.active.id === "number") return [];
     return closestCenter(args);
   }, []);
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    if (typeof active.id !== "number" || typeof over.id !== "number") return;
-
-    const activeItem = items.find((i) => i.id === active.id);
-    const overItem = items.find((i) => i.id === over.id);
-    if (activeItem && overItem && activeItem.category !== overItem.category) {
-      updateItemCategory(active.id as number, overItem.category);
-    }
-  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -90,9 +80,7 @@ export function ListDndProvider({
         if (item.location !== locName) {
           const prevLocation = item.location;
           updateItemLocation(itemId, locName);
-          const loc = locations.find((l) => l.name === locName);
-          const label = loc ? `${loc.emoji} ${loc.name}` : "その他";
-          showToast(`${item.name}の店を${label}に設定`, "mdi:store", () => {
+          showToast(`${item.name}の店を${placeLabel(locName, locations)}に設定`, "mdi:store", () => {
             updateItemLocation(itemId, prevLocation);
           });
         }
@@ -105,23 +93,22 @@ export function ListDndProvider({
         if (item.storageLocation !== slocName) {
           const prevStorageLocation = item.storageLocation;
           updateItemStorageLocation(itemId, slocName);
-          const sloc = storageLocations.find((l) => l.name === slocName);
-          const label = sloc ? `${sloc.emoji} ${sloc.name}` : "その他";
-          showToast(`${item.name}の保管場所を${label}に設定`, "mdi:package-variant", () => {
+          showToast(`${item.name}の保管場所を${placeLabel(slocName, storageLocations)}に設定`, "mdi:package-variant", () => {
             updateItemStorageLocation(itemId, prevStorageLocation);
           });
         }
         return;
       }
 
+      // カテゴリの枠（見出しなど）に落としたら、そのカテゴリに移す
+      if (overId.startsWith("cat-")) {
+        const category = overId.slice(4);
+        if (item.category !== category) updateItemCategory(itemId, category);
+      }
       return;
     }
 
-    if (!over && typeof active.id === "number") {
-      updateItemCategory(active.id, "");
-      return;
-    }
-
+    // 何もないところで離したときは何もしない（カテゴリは変えない）
     if (!over || active.id === over.id) return;
 
     if (typeof active.id === "string" && typeof over.id === "string") {
@@ -134,6 +121,12 @@ export function ListDndProvider({
     }
 
     if (typeof active.id === "number" && typeof over.id === "number") {
+      // ドラッグ中ではなく、落とした時点で落とした先のカテゴリに移す
+      const activeItem = items.find((i) => i.id === active.id);
+      const overItem = items.find((i) => i.id === over.id);
+      if (activeItem && overItem && activeItem.category !== overItem.category) {
+        updateItemCategory(activeItem.id, overItem.category);
+      }
       onItemReorder(active.id, over.id);
     }
   };
@@ -145,7 +138,7 @@ export function ListDndProvider({
       onDragStart={(event: DragStartEvent) => {
         if (typeof event.active.id === "number") setActiveId(event.active.id);
       }}
-      onDragOver={handleDragOver}
+      onDragCancel={() => setActiveId(null)}
       onDragEnd={handleDragEnd}
     >
       {children}
@@ -154,17 +147,21 @@ export function ListDndProvider({
           const item = items.find((i) => i.id === activeId);
           if (!item) return null;
           return (
+            // 見た目は GroceryList のアイテム行に合わせる
             <li className="flex items-stretch bg-base-100 rounded-box shadow-lg opacity-90 select-none">
               <div className="flex flex-1 items-center gap-3 px-4 py-3 min-w-0">
-                <Icon icon="mdi:check-circle-outline" className="size-5 text-base-content/30 shrink-0" />
+                <Icon
+                  icon={mode === "shopping" ? "mdi:check-circle-outline" : "mdi:cart-plus"}
+                  className="size-5 text-base-content/30 shrink-0"
+                />
                 <div className="min-w-0">
                   <div className="truncate">{item.name}</div>
                 </div>
               </div>
-              <div className="flex items-center justify-center px-2">
+              <div className="flex w-9 items-center justify-center">
                 <Icon icon="mdi:dots-vertical" className="size-5" />
               </div>
-              <div className="flex items-center justify-center pr-3 pl-2 cursor-grab">
+              <div className="flex w-9 items-center justify-center pr-1 cursor-grab">
                 <Icon icon="mdi:drag-horizontal-variant" className="size-4 text-base-content/30" />
               </div>
             </li>
