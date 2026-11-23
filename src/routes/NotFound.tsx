@@ -1,17 +1,15 @@
 import { Link } from "react-router";
+import { PageLayout } from "../components/PageLayout";
 
 export default function NotFound() {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="card card-border bg-base-100">
-        <div className="card-body items-center p-4 text-center sm:p-6">
-          <h1 className="text-xl font-bold">ページが見つかりません</h1>
-          <p className="text-sm opacity-70">お探しのページは移動または削除された可能性があります。</p>
-          <Link to="/" className="btn btn-primary btn-sm mt-2">
-            買い物リストへ戻る
-          </Link>
-        </div>
+    <PageLayout title="ページが見つかりません">
+      <div className="flex flex-col items-start gap-4">
+        <p className="text-sm text-base-content/60">お探しのページは移動または削除された可能性があります。</p>
+        <Link to="/" className="btn btn-primary btn-sm">
+          買い物リストへ戻る
+        </Link>
       </div>
-    </div>
+    </PageLayout>
   );
 }

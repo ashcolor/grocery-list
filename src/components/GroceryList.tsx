@@ -158,14 +158,13 @@ function InlineInput({
             <li key={item.id}>
               <button
                 type="button"
-                className="w-full text-left px-4 py-3 hover:bg-base-300 active:bg-base-300 rounded-box flex items-center gap-3"
+                className="w-full text-left px-4 py-3 hover:bg-base-300 active:bg-base-300 rounded-box"
                 onPointerDown={(e) => {
                   e.preventDefault();
                   skipBlur.current = true;
                 }}
                 onClick={() => handleConfirm(item.name)}
               >
-                <Icon icon="mdi:cart-outline" className="size-5 text-base-content/40 shrink-0" />
                 {item.name}
               </button>
             </li>
@@ -432,7 +431,8 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
+        {/* 下の余白は、追加ボタン（3rem）と、その上下に Dock との隙間と同じ 1rem ずつ */}
+        <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-20">
           {/* 画像の読み込みで高さが変わるので、開いたときに一番下へ合わせ直す */}
           {headerImage && <LocationCard image={headerImage} onLoad={scrollToBottom} />}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (

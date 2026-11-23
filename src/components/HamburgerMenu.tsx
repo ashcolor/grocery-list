@@ -88,11 +88,11 @@ export function HamburgerMenu() {
     <>
       <button
         type="button"
-        className="btn btn-square btn-ghost"
+        className="btn btn-sm btn-square btn-ghost"
         onClick={() => setOpen(!open)}
         aria-label="メニュー"
       >
-            <Icon icon="mdi:menu" className="size-4" />
+        <Icon icon="mdi:menu" className="size-5" />
       </button>
 
       {open && <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setOpen(false)} />}

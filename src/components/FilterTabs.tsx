@@ -29,9 +29,15 @@ export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiv
 
   if (items.length === 0) return null;
   return (
-    <div ref={scrollRef} className="bg-base-100 overflow-x-auto">
-      <div className="flex items-center">
-        <div role="tablist" className="tabs tabs-border tabs-sm flex-1 flex-nowrap">
+    // タブの端をツールバーのアイコンやリストのカードと同じ、main の左右パディング（16px）に揃える
+    // 余白は中身の側に付けて、右端までスクロールしたときにも右の余白が残るようにする
+    <div ref={scrollRef} className="shrink-0 border-b border-base-300 bg-base-100 overflow-x-auto">
+      {/* 選択中の下線をタブの幅いっぱいにして、端の位置を揃える */}
+      <div className="flex w-max min-w-full items-center px-4">
+        <div
+          role="tablist"
+          className="tabs tabs-border flex-1 flex-nowrap [&>.tab]:before:left-0! [&>.tab]:before:w-full!"
+        >
           <a
             role="tab"
             className={`tab whitespace-nowrap ${selected === null ? "tab-active" : ""}`}
