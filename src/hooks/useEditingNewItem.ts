@@ -3,6 +3,12 @@ import type { GroceryItem } from "../types";
 import { useGrocery } from "../context/GroceryContext";
 import { guessCategory } from "../utils/autoCategory";
 
+/** 追加できなかったときのエラー。action があれば、エラーの横にボタンとして出す */
+export interface AddError {
+  message: string;
+  action?: { label: string; run: () => void };
+}
+
 interface UseEditingNewItemOptions {
   addItem: (name: string, category?: string, ...rest: (string | undefined)[]) => number;
   /** Extra args to pass after category when adding */
@@ -15,6 +21,14 @@ interface UseEditingNewItemOptions {
   moveFromOther?: (id: number) => void;
   /** Show toast notification */
   showToast?: (message: string, icon: string) => void;
+  /** 選択中のタブ（店・保管場所）に表示されるアイテムか。省略時はすべて表示されている扱い */
+  isInCurrentTab?: (item: GroceryItem) => boolean;
+  /** アイテムがどのタブにあるか（「🛒 スーパー」など） */
+  describeTab?: (item: GroceryItem) => string;
+  /** アイテムを選択中のタブに移す */
+  moveToCurrentTab?: (item: GroceryItem) => void;
+  /** 移すボタンの文言（「ホームセンターに移動」など） */
+  moveToCurrentTabLabel?: string;
 }
 
 export function useEditingNewItem({
@@ -24,6 +38,10 @@ export function useEditingNewItem({
   otherItems,
   moveFromOther,
   showToast,
+  isInCurrentTab,
+  describeTab,
+  moveToCurrentTab,
+  moveToCurrentTabLabel = "ここに移動",
 }: UseEditingNewItemOptions) {
   const { categories } = useGrocery();
   const [editingNewCategory, setEditingNewCategory] = useState<string | null>(null);
@@ -37,17 +55,26 @@ export function useEditingNewItem({
   );
 
   const handleEditComplete = useCallback(
-    (name: string): string | null => {
+    (name: string): AddError | null => {
       // Check if an item with the same name already exists in the current list
-      if (currentItems) {
-        const duplicate = currentItems.find(
-          (item) => item.name.toLowerCase() === name.toLowerCase(),
-        );
-        if (duplicate) {
-          const error = `既にリストに存在するアイテム`;
-          showToast?.(error, "mdi:alert-circle-outline");
-          return error;
+      const duplicate = currentItems?.find((item) => item.name.toLowerCase() === name.toLowerCase());
+      if (duplicate) {
+        // 別のタブにあって今のタブでは見えていないなら、どこにあるかを出して移せるようにする
+        if (isInCurrentTab && !isInCurrentTab(duplicate) && describeTab && moveToCurrentTab) {
+          return {
+            message: `${describeTab(duplicate)}にあります`,
+            action: {
+              label: moveToCurrentTabLabel,
+              run: () => {
+                moveToCurrentTab(duplicate);
+                setEditingNewCategory(null);
+              },
+            },
+          };
         }
+        const message = "既にリストに存在するアイテム";
+        showToast?.(message, "mdi:alert-circle-outline");
+        return { message };
       }
       // Check if an item with the same name exists in the other list
       if (otherItems && moveFromOther) {
@@ -64,7 +91,20 @@ export function useEditingNewItem({
       setEditingNewCategory(null);
       return null;
     },
-    [addItem, editingNewCategory, extraAddArgs, currentItems, otherItems, moveFromOther, showToast, categories],
+    [
+      addItem,
+      editingNewCategory,
+      extraAddArgs,
+      currentItems,
+      otherItems,
+      moveFromOther,
+      showToast,
+      categories,
+      isInCurrentTab,
+      describeTab,
+      moveToCurrentTab,
+      moveToCurrentTabLabel,
+    ],
   );
 
   const handleEditCancel = useCallback(() => {

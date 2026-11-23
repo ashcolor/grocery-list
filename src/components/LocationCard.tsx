@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 /** 店の画像（会員カードのバーコードなど）。タップで白背景の全画面に拡大する */
 export function LocationCard({ image, onLoad }: { image: string; onLoad?: () => void }) {
@@ -14,14 +15,19 @@ export function LocationCard({ image, onLoad }: { image: string; onLoad?: () => 
       >
         <img src={image} alt="" className="max-h-28 max-w-full object-contain" onLoad={onLoad} />
       </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-white p-4"
-          onClick={() => setOpen(false)}
-        >
-          <img src={image} alt="" className="max-h-full max-w-full object-contain" />
-        </div>
-      )}
+      {/* スワイプ中は親に transform が掛かって fixed がずれるので body 直下に出す。
+          拡大中は左右スワイプでタブが切り替わらないようにする（data-no-swipe） */}
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white p-4"
+            data-no-swipe
+            onClick={() => setOpen(false)}
+          >
+            <img src={image} alt="" className="max-h-full max-w-full object-contain" />
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

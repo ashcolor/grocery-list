@@ -31,3 +31,6 @@ settings.local.json
 
 # Environment
 .env*
+
+# Playwright
+.playwright-cli/

@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import { useGrocery } from "../context/GroceryContext";
 import { exportBackup, importBackup } from "../utils/backup";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { PageLayout, PageSection } from "../components/PageLayout";
 
 export default function Settings() {
   const { resetToDefaults, clearAll } = useGrocery();
@@ -23,10 +24,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">設定</h1>
-
-      <h2 className="text-lg font-bold mt-2">インポート・エクスポート</h2>
+    <PageLayout title="設定">
+      <PageSection title="インポート・エクスポート">
       <p className="text-sm text-base-content/60">
         リスト・マスター・メモをファイルに保存したり、保存したファイルから戻したりできます。
       </p>
@@ -47,8 +46,12 @@ export default function Settings() {
           onChange={handleImport}
         />
       </div>
+      </PageSection>
 
-      <h2 className="text-lg font-bold mt-6">データ管理</h2>
+      <PageSection title="データ管理">
+      <p className="text-sm text-base-content/60">
+        データを最初の状態に戻したり、すべて消したりできます。メモは残ります。
+      </p>
       <div className="flex gap-2">
         <button
           className="btn btn-outline btn-sm"
@@ -65,6 +68,7 @@ export default function Settings() {
           全削除
         </button>
       </div>
+      </PageSection>
 
       {confirming === "reset" && (
         <ConfirmModal
@@ -102,6 +106,6 @@ export default function Settings() {
           </span>
         </ConfirmModal>
       )}
-    </div>
+    </PageLayout>
   );
 }

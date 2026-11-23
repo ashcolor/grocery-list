@@ -3,6 +3,7 @@ import { Icon } from "@iconify/react";
 import type { NamedItem } from "../types";
 import { resizeImageToDataUrl } from "../utils/resizeImage";
 import { ConfirmModal } from "./ConfirmModal";
+import { UNSET_PLACE_LABEL } from "../constants";
 
 interface NamedItemModalProps {
   title: string;
@@ -12,6 +13,8 @@ interface NamedItemModalProps {
   namePlaceholder: string;
   /** 画像（会員カードなど）の設定欄を出す */
   withImage?: boolean;
+  /** 削除したときに、使っていたアイテムがどう表示されるか（カテゴリは「その他」、店・保管場所は「未設定」） */
+  unsetLabel?: string;
   /** 保存。エラーメッセージを返すと反映せずに表示する。編集時は変更のたびに呼ばれる */
   onSave: (item: NamedItem) => string | null;
   /** 編集時のみ。モーダル内の削除ボタンから呼ばれる */
@@ -26,6 +29,7 @@ export function NamedItemModal({
   emojiPlaceholder,
   namePlaceholder,
   withImage,
+  unsetLabel = UNSET_PLACE_LABEL,
   onSave,
   onDelete,
   onClose,
@@ -177,7 +181,7 @@ export function NamedItemModal({
         >
           「{initial.name}」を削除しますか？
           <br />
-          <span className="text-base-content/60">使っているアイテムは「その他」になります。</span>
+          <span className="text-base-content/60">使っているアイテムは「{unsetLabel}」になります。</span>
         </ConfirmModal>
       )}
     </div>

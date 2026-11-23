@@ -1,12 +1,12 @@
 import { useGrocery } from "../context/GroceryContext";
 import { SettingsSection } from "../components/SettingsSection";
+import { PageLayout } from "../components/PageLayout";
 
 function MasterPage({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      {children}
-    </div>
+    <PageLayout title={title}>
+      <div className="flex flex-col gap-4">{children}</div>
+    </PageLayout>
   );
 }
 
@@ -37,6 +37,7 @@ export function CategoriesMaster() {
         items={categories}
         addLabel="カテゴリを追加"
         namePlaceholder="カテゴリ名"
+        unsetLabel="その他"
         onAdd={addCategory}
         onRemove={removeCategory}
         onUpdate={updateCategory}

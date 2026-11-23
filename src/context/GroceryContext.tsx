@@ -9,6 +9,7 @@ import {
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useNamedItemList } from "../hooks/useNamedItemList";
 import { useToast } from "../hooks/useToast";
+import { ToastContainer } from "../components/ToastContainer";
 
 interface GroceryContextValue {
   categories: NamedItem[];
@@ -44,13 +45,23 @@ interface GroceryContextValue {
 
   reorderShoppingItems: (fromId: number, toId: number) => void;
   reorderOutOfStockItems: (fromId: number, toId: number) => void;
-  moveToOutOfStock: (id: number, options?: { silent?: boolean }) => void;
-  moveToShopping: (id: number, options?: { silent?: boolean }) => void;
-  importSharedItems: (list: "shopping" | "outOfStock", items: { name: string; category: string }[]) => number;
+  moveToOutOfStock: (id: number, options?: MoveOptions) => void;
+  moveToShopping: (id: number, options?: MoveOptions) => void;
+  importSharedItems: (
+    list: "shopping" | "outOfStock",
+    items: { name: string; category: string }[],
+    patch?: MoveOptions["patch"],
+  ) => number;
 
   resetToDefaults: () => void;
   clearAll: () => void;
   showToast: (message: string, icon: string, onUndo?: () => void) => void;
+}
+
+/** 移動時のオプション。patch は移動先のアイテムに上書きする値（例: 選択中タブの店） */
+interface MoveOptions {
+  silent?: boolean;
+  patch?: Partial<Pick<GroceryItem, "location" | "storageLocation">>;
 }
 
 const GroceryContext = createContext<GroceryContextValue | null>(null);
@@ -74,7 +85,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     "out-of-stock-items",
     [],
   );
-  const { show, ToastContainer } = useToast();
+  const { toasts, show, dismiss } = useToast();
 
   const itemSetters = useMemo(
     () => [setShoppingItems, setOutOfStockItems],
@@ -168,13 +179,13 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     setOutOfStockItems((prev) => reorderById(prev, fromId, toId));
   }, [setOutOfStockItems]);
 
-  const moveToOutOfStock = useCallback((id: number, options?: { silent?: boolean }) => {
+  const moveToOutOfStock = useCallback((id: number, options?: MoveOptions) => {
     const item = shoppingItems.find((i) => i.id === id);
     if (!item) return;
     setShoppingItems((prev) => prev.filter((i) => i.id !== id));
     const newId = Date.now();
     const purchaseDates = [...(item.purchaseDates ?? []), newId].slice(-10);
-    const movedItem = { ...item, id: newId, purchaseDates };
+    const movedItem = { ...item, ...options?.patch, id: newId, purchaseDates };
     setOutOfStockItems((prev) =>
       prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
     );
@@ -186,13 +197,13 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
     }
   }, [shoppingItems, setShoppingItems, setOutOfStockItems, show]);
 
-  const moveToShopping = useCallback((id: number, options?: { silent?: boolean }) => {
+  const moveToShopping = useCallback((id: number, options?: MoveOptions) => {
     const item = outOfStockItems.find((i) => i.id === id);
     if (!item) return;
     setOutOfStockItems((prev) => prev.filter((i) => i.id !== id));
     const newId = Date.now();
     const outOfStockDates = [...(item.outOfStockDates ?? []), newId].slice(-10);
-    const movedItem = { ...item, id: newId, outOfStockDates };
+    const movedItem = { ...item, ...options?.patch, id: newId, outOfStockDates };
     setShoppingItems((prev) =>
       prev.some((i) => i.name === item.name) ? prev : [...prev, movedItem],
     );
@@ -207,9 +218,10 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
   /**
    * 共有URLから受け取ったアイテムをまとめて追加する。追加した件数を返す。
    * 追加先に同名があれば飛ばし、もう一方のリストにあればそちらから移動する。
+   * patch を渡すと、追加・移動したアイテムに上書きする（選択中タブの店など）。
    */
   const importSharedItems = useCallback(
-    (list: "shopping" | "outOfStock", shared: { name: string; category: string }[]) => {
+    (list: "shopping" | "outOfStock", shared: { name: string; category: string }[], patch?: MoveOptions["patch"]) => {
       const target = list === "shopping" ? shoppingItems : outOfStockItems;
       const other = list === "shopping" ? outOfStockItems : shoppingItems;
       const setTarget = list === "shopping" ? setShoppingItems : setOutOfStockItems;
@@ -226,11 +238,11 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
         const existing = other.find((i) => key(i.name) === key(s.name));
         if (existing) {
           movedIds.add(existing.id);
-          added.push({ ...existing, id: baseId + index });
+          added.push({ ...existing, ...patch, id: baseId + index });
           return;
         }
         const category = categoryList.items.some((c) => c.name === s.category) ? s.category : "";
-        added.push({ id: baseId + index, name: s.name.trim(), category });
+        added.push({ id: baseId + index, name: s.name.trim(), category, ...patch });
       });
 
       if (movedIds.size > 0) setOther((prev) => prev.filter((i) => !movedIds.has(i.id)));
@@ -296,7 +308,7 @@ export function GroceryProvider({ children }: { children: ReactNode }) {
       showToast: show,
     }}>
       {children}
-      <ToastContainer />
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </GroceryContext>
   );
 }

@@ -33,6 +33,8 @@ interface SettingsSectionProps {
   onReorder: (fromIdx: number, toIdx: number) => void;
   /** 各項目に画像（会員カードなど）を設定できるようにする */
   withImage?: boolean;
+  /** 削除したときに、使っていたアイテムがどう表示されるか */
+  unsetLabel?: string;
 }
 
 /** モーダルを新規追加で開いていることを表す値（項目名と衝突しない） */
@@ -54,6 +56,7 @@ export function SettingsSection({
   onUpdate,
   onReorder,
   withImage,
+  unsetLabel,
 }: SettingsSectionProps) {
   /** 編集中の項目名。新規追加中は ADDING、閉じているときは null */
   const [modalTarget, setModalTarget] = useState<string | null>(null);
@@ -119,6 +122,7 @@ export function SettingsSection({
           emojiPlaceholder={emojiPlaceholder}
           namePlaceholder={namePlaceholder}
           withImage={withImage}
+          unsetLabel={unsetLabel}
           onSave={handleSave}
           onDelete={editingItem ? () => onRemove(editingItem.name) : undefined}
           onClose={() => setModalTarget(null)}

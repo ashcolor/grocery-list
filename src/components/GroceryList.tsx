@@ -4,6 +4,7 @@ import type { GroceryItem, NamedItem } from "../types";
 import { useGrocery } from "../context/GroceryContext";
 import { ItemEditSheet } from "./ItemEditSheet";
 import { LocationCard } from "./LocationCard";
+import type { AddError } from "../hooks/useEditingNewItem";
 import {
   SortableContext,
   useSortable,
@@ -18,7 +19,7 @@ interface GroceryListProps {
   onItemClick: (id: number, options?: { silent?: boolean }) => void;
   onItemRemove: (id: number) => void;
   onAddToCategory: (category: string) => void;
-  onEditNewComplete: (name: string) => string | null;
+  onEditNewComplete: (name: string) => AddError | null;
   onEditNewCancel: () => void;
   /** Items from the other list for suggestions */
   suggestItems?: GroceryItem[];
@@ -59,13 +60,13 @@ function InlineInput({
   onCancel,
   suggestItems = [],
 }: {
-  onConfirm: (name: string) => string | null;
+  onConfirm: (name: string) => AddError | null;
   onCancel: () => void;
   suggestItems?: GroceryItem[];
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AddError | null>(null);
   const skipBlur = useRef(false);
 
   useEffect(() => {
@@ -91,8 +92,8 @@ function InlineInput({
       const err = onConfirm(finalName);
       if (err) {
         setError(err);
-        skipBlur.current = true;
-        ref.current?.focus();
+        // blur から呼ばれたときも入力を続けられるよう、フォーカスを戻す
+        setTimeout(() => ref.current?.focus(), 0);
         return;
       }
     } else {
@@ -121,24 +122,49 @@ function InlineInput({
             skipBlur.current = false;
             return;
           }
+          // エラーを見せたあとにもう一度外をタップしたら、入力をやめる
+          if (error) {
+            onCancel();
+            return;
+          }
           handleConfirm();
         }}
       />
-      {error && <p className="text-error text-xs mt-1">{error}</p>}
+      {error && (
+        <div className="mt-2 flex items-center gap-2">
+          <p className="text-error text-xs flex-1">{error.message}</p>
+          {error.action && (
+            <button
+              type="button"
+              className="btn btn-xs btn-primary"
+              onPointerDown={(e) => {
+                // 入力欄のフォーカスを外さない（blur で入力が閉じないように）
+                e.preventDefault();
+                skipBlur.current = true;
+              }}
+              onClick={() => {
+                skipBlur.current = false;
+                error.action!.run();
+              }}
+            >
+              {error.action.label}
+            </button>
+          )}
+        </div>
+      )}
       {suggestions.length > 0 && (
         <ul className="mt-1 rounded-box bg-base-100 text-base border border-base-300">
           {suggestions.map((item) => (
             <li key={item.id}>
               <button
                 type="button"
-                className="w-full text-left px-4 py-3 hover:bg-base-300 active:bg-base-300 rounded-box flex items-center gap-3"
+                className="w-full text-left px-4 py-3 hover:bg-base-300 active:bg-base-300 rounded-box"
                 onPointerDown={(e) => {
                   e.preventDefault();
                   skipBlur.current = true;
                 }}
                 onClick={() => handleConfirm(item.name)}
               >
-                <Icon icon="mdi:cart-outline" className="size-5 text-base-content/40 shrink-0" />
                 {item.name}
               </button>
             </li>
@@ -215,15 +241,15 @@ function SortableCategoryGroup({
 function SortableGroceryItem({
   item,
   mode,
-  dismissingId,
-  checkedId,
+  dismissing,
+  checked,
   onCheck,
   onEdit,
 }: {
   item: GroceryItem;
   mode: "shopping" | "outOfStock";
-  dismissingId: number | null;
-  checkedId: number | null;
+  dismissing: boolean;
+  checked: boolean;
   onCheck: (id: number) => void;
   onEdit: (item: GroceryItem) => void;
 }) {
@@ -248,7 +274,7 @@ function SortableGroceryItem({
       style={style}
       {...attributes}
       className={`flex items-stretch border-b border-base-300 last:border-b-0 select-none ${
-        dismissingId === item.id ? "animate-fade-out-left" : ""
+        dismissing ? "animate-fade-out-left" : ""
       } ${isDragging ? "opacity-50 z-10" : ""}`}
     >
       <div
@@ -256,10 +282,10 @@ function SortableGroceryItem({
         onClick={() => onCheck(item.id)}
       >
         <Icon
-          icon={checkedId === item.id
+          icon={checked
             ? (mode === "shopping" ? "mdi:check-circle" : "mdi:cart-check")
             : (mode === "shopping" ? "mdi:check-circle-outline" : "mdi:cart-plus")}
-          className={`size-5 shrink-0 ${checkedId === item.id ? "text-success" : "text-base-content/30"}`}
+          className={`size-5 shrink-0 ${checked ? "text-success" : "text-base-content/30"}`}
         />
         <div className="min-w-0">
           <div className="truncate">{item.name}</div>
@@ -305,29 +331,56 @@ export default function GroceryList({
   suggestItems,
   headerImage,
 }: GroceryListProps) {
-  const { categories, updateItemCategory, locations, updateItemLocation, storageLocations, updateItemStorageLocation, updateItemName } = useGrocery();
+  const {
+    categories,
+    updateItemCategory,
+    locations,
+    updateItemLocation,
+    storageLocations,
+    updateItemStorageLocation,
+    updateItemName,
+    shoppingItems,
+    outOfStockItems,
+  } = useGrocery();
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
-  const [dismissingId, setDismissingId] = useState<number | null>(null);
-  const [checkedId, setCheckedId] = useState<number | null>(null);
-  const pendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // お店で次々チェックできるよう、アイテムごとに処理中を管理する
+  const [dismissingIds, setDismissingIds] = useState<ReadonlySet<number>>(new Set());
+  const [checkedIds, setCheckedIds] = useState<ReadonlySet<number>>(new Set());
+  const pendingIds = useRef(new Set<number>());
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasScrolled = useRef(false);
 
   const handleClick = useCallback((id: number) => {
-    // 処理中の連打は無視する
-    if (pendingRef.current) return;
-    setCheckedId(id);
+    // 同じアイテムの連打は無視する（別のアイテムは続けて押せる）
+    if (pendingIds.current.has(id)) return;
+    pendingIds.current.add(id);
+    const withId = (prev: ReadonlySet<number>) => new Set(prev).add(id);
+    const withoutId = (prev: ReadonlySet<number>) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    };
+    setCheckedIds(withId);
 
-    pendingRef.current = setTimeout(() => {
-      setDismissingId(id);
+    setTimeout(() => {
+      setDismissingIds(withId);
       setTimeout(() => {
-        setCheckedId(null);
-        setDismissingId(null);
-        pendingRef.current = null;
+        setCheckedIds(withoutId);
+        setDismissingIds(withoutId);
+        pendingIds.current.delete(id);
         onItemClick(id);
       }, 250);
     }, 300);
   }, [onItemClick]);
+
+  /** 名前を変えたときに、ほかのアイテム（両方のリスト）と被らないか */
+  const isDuplicateName = useCallback(
+    (id: number, name: string) => {
+      const key = name.trim().toLowerCase();
+      return [...shoppingItems, ...outOfStockItems].some((i) => i.id !== id && i.name.trim().toLowerCase() === key);
+    },
+    [shoppingItems, outOfStockItems],
+  );
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -366,8 +419,8 @@ export default function GroceryList({
           key={item.id}
           item={item}
           mode={mode}
-          dismissingId={dismissingId}
-          checkedId={checkedId}
+          dismissing={dismissingIds.has(item.id)}
+          checked={checkedIds.has(item.id)}
           onCheck={handleClick}
           onEdit={setEditingItem}
         />
@@ -378,7 +431,8 @@ export default function GroceryList({
   return (
     <>
       <SortableContext items={catSortableIds} strategy={verticalListSortingStrategy}>
-        <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-16">
+        {/* 下の余白は、追加ボタン（3rem）と、その上下に Dock との隙間と同じ 1rem ずつ */}
+        <div className="swipe-target flex flex-col justify-end min-h-full gap-4 pt-[60vh] pb-20">
           {/* 画像の読み込みで高さが変わるので、開いたときに一番下へ合わせ直す */}
           {headerImage && <LocationCard image={headerImage} onLoad={scrollToBottom} />}
           {(unsetGroup || editingNewCategory === UNSET_CATEGORY) && (
@@ -427,6 +481,7 @@ export default function GroceryList({
           locations={locations}
           storageLocations={storageLocations}
           onUpdateName={updateItemName}
+          isDuplicateName={isDuplicateName}
           onUpdateCategory={updateItemCategory}
           onUpdateLocation={updateItemLocation}
           onUpdateStorageLocation={updateItemStorageLocation}
