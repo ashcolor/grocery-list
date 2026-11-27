@@ -1,6 +1,4 @@
 import { useRef, useState } from "react";
-import { UNSET_FILTER } from "../constants";
-import type { NamedItem } from "../types";
 
 // slot-tools のカウンターのスワイプに合わせた値
 /** 縦横どちらの操作かを判定し始める移動量（px） */
@@ -20,19 +18,22 @@ interface SwipeState {
 }
 
 /**
- * 左右スワイプでフィルタータブ（すべて → 各項目 → 未設定）を切り替える。
+ * 左右スワイプで、並んだ移動先（画面やタブ）を前後に切り替える。
+ * 並び順と切り替え後の処理は呼び出し側が決め、ここでは何番目に移るかだけを扱う。
  * レイアウトに影響しないよう display: contents で包み、動かす対象（.swipe-target）には
  * CSS 変数とデータ属性で位置とアニメーションを渡す（index.css 参照）。
  */
 export function SwipeTabArea({
-  items,
-  selected,
-  onSelect,
+  count,
+  index,
+  onChange,
   children,
 }: {
-  items: NamedItem[];
-  selected: string | null;
-  onSelect: (value: string | null) => void;
+  /** 移動先の数 */
+  count: number;
+  /** 今いる移動先の位置。スワイプしない画面では -1 */
+  index: number;
+  onChange: (index: number) => void;
   children: React.ReactNode;
 }) {
   const swipeRef = useRef<SwipeState | null>(null);
@@ -42,13 +43,14 @@ export function SwipeTabArea({
   const [settling, setSettling] = useState(false);
   const [animation, setAnimation] = useState<"left" | "right" | null>(null);
 
-  const options: (string | null)[] = [null, ...items.map((i) => i.name), UNSET_FILTER];
-
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
-    if (!e.isPrimary || e.button !== 0 || items.length === 0) return;
-    // 入力欄・並び替えのつまみ（touch-none）・編集シート・モーダル内の操作ではタブを切り替えない
-    if (target.closest("input, textarea, .touch-none, [data-no-swipe], .modal")) return;
+    if (!e.isPrimary || e.button !== 0 || index < 0 || count <= 1) return;
+    // 入力欄・並び替えのつまみ（touch-none）・編集シート・モーダル内の操作では切り替えない
+    if (target.closest("input, .touch-none, [data-no-swipe], .modal")) return;
+    // メモ欄は入力中（フォーカス中）だけ除外し、触っていないときは上からでもスワイプできるようにする
+    const textarea = target.closest("textarea");
+    if (textarea && textarea === document.activeElement) return;
     swipeRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
@@ -59,6 +61,8 @@ export function SwipeTabArea({
     suppressClickRef.current = false;
     setOffsetX(0);
     setSettling(false);
+    // 前回の切り替えで動かす対象がなくアニメーションが終わらなかった場合に備えて戻しておく
+    setAnimation(null);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -97,17 +101,16 @@ export function SwipeTabArea({
       return;
     }
 
-    // 左にスワイプで次のタブ、右にスワイプで前のタブ。両端では元に戻すだけ
-    const index = Math.max(0, options.indexOf(selected));
-    const next = options[index + (dx < 0 ? 1 : -1)];
-    if (next === undefined) {
+    // 左にスワイプで次、右にスワイプで前へ。両端では元に戻すだけ
+    const next = index + (dx < 0 ? 1 : -1);
+    if (next < 0 || next >= count) {
       settle();
       return;
     }
     setOffsetX(0);
     setSettling(false);
     setAnimation(dx < 0 ? "left" : "right");
-    onSelect(next);
+    onChange(next);
   };
 
   const handlePointerCancel = () => {

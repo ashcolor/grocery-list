@@ -104,25 +104,64 @@ function LocationFilter({ selected, onSelect }: { selected: string | null; onSel
 /** ツールバー左側に並べるマスター画面へのリンク */
 const MASTER_LINKS = [
   { path: "/master/locations", label: "店", icon: "mdi:store-outline" },
-  { path: "/master/categories", label: "カテゴリ", icon: "mdi:tag-outline" },
   { path: "/master/storage-locations", label: "保管場所", icon: "mdi:package-variant" },
+  { path: "/master/categories", label: "カテゴリ", icon: "mdi:tag-outline" },
 ];
 
-/** リスト画面で、左右スワイプで店・保管場所のタブを切り替える */
-function ListSwipeArea({
-  isOutOfStock,
-  selected,
-  onSelect,
+/** スワイプで移る先。画面と、その画面で選ぶタブ（店・保管場所。メモは常に null） */
+interface SwipeStop {
+  path: string;
+  value: string | null;
+}
+
+/** 画面内のタブ（すべて → 各項目 → 未設定）を並べる。項目がなくタブが出ない画面は1つだけ */
+function tabStops(path: string, items: NamedItem[]): SwipeStop[] {
+  if (items.length === 0) return [{ path, value: null }];
+  return [null, ...items.map((i) => i.name), UNSET_FILTER].map((value) => ({ path, value }));
+}
+
+/**
+ * 左右スワイプで、メモ → 買い物（各店のタブ）→ なくなった（各保管場所のタブ）を1列につないで移動する。
+ * 画面の端のタブからさらにスワイプすると隣の画面に移り、入った側の端のタブを選ぶ
+ */
+function PageSwipeArea({
+  selectedLocation,
+  onSelectLocation,
+  selectedStorageLocation,
+  onSelectStorageLocation,
   children,
 }: {
-  isOutOfStock: boolean;
-  selected: string | null;
-  onSelect: (v: string | null) => void;
+  selectedLocation: string | null;
+  onSelectLocation: (v: string | null) => void;
+  selectedStorageLocation: string | null;
+  onSelectStorageLocation: (v: string | null) => void;
   children: React.ReactNode;
 }) {
   const { locations, storageLocations } = useGrocery();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const stops: SwipeStop[] = [
+    { path: "/memo", value: null },
+    ...tabStops("/", locations),
+    ...tabStops("/out-of-stock", storageLocations),
+  ];
+  const selectedOf = (path: string) =>
+    path === "/" ? selectedLocation : path === "/out-of-stock" ? selectedStorageLocation : null;
+  const current = selectedOf(location.pathname);
+  let index = stops.findIndex((s) => s.path === location.pathname && s.value === current);
+  // 選択中のタブが削除直後などで見つからなければ、その画面の先頭（すべて）にいるものとして扱う
+  if (index < 0) index = stops.findIndex((s) => s.path === location.pathname);
+
+  const handleChange = (next: number) => {
+    const stop = stops[next];
+    if (stop.path === "/") onSelectLocation(stop.value);
+    if (stop.path === "/out-of-stock") onSelectStorageLocation(stop.value);
+    if (stop.path !== location.pathname) navigate(stop.path);
+  };
+
   return (
-    <SwipeTabArea items={isOutOfStock ? storageLocations : locations} selected={selected} onSelect={onSelect}>
+    <SwipeTabArea count={stops.length} index={index} onChange={handleChange}>
       {children}
     </SwipeTabArea>
   );
@@ -300,8 +339,10 @@ export default function App() {
   const isMemoPage = location.pathname === "/memo";
 
   const mainContent = (
-    // リスト画面では横方向のタッチをブラウザに渡さず、タブ切り替えのスワイプに使う
-    <main className={`w-full mx-auto max-w-lg px-4 flex-1 min-h-0 overflow-y-auto ${isListPage ? "touch-pan-y" : ""}`}>
+    // リスト・メモ画面では横方向のタッチをブラウザに渡さず、画面・タブ切り替えのスワイプに使う
+    <main
+      className={`w-full mx-auto max-w-lg px-4 flex-1 min-h-0 overflow-y-auto ${isListPage || isMemoPage ? "touch-pan-y" : ""}`}
+    >
       <Routes>
         <Route path="/" element={<Home locationFilter={selectedLocation} />} />
         <Route path="/out-of-stock" element={<OutOfStock storageLocationFilter={selectedStorageLocation} />} />
@@ -361,19 +402,25 @@ export default function App() {
           </div>
         </div>
       )}
-      {isListPage ? (
-        <ListDndProvider mode={isOutOfStock ? "outOfStock" : "shopping"}>
-          {!isOutOfStock && <LocationFilter selected={selectedLocation} onSelect={setSelectedLocation} />}
-          {isOutOfStock && <StorageLocationFilter selected={selectedStorageLocation} onSelect={setSelectedStorageLocation} />}
-          <ListSwipeArea
-            isOutOfStock={isOutOfStock}
-            selected={isOutOfStock ? selectedStorageLocation : selectedLocation}
-            onSelect={isOutOfStock ? setSelectedStorageLocation : setSelectedLocation}
-          >
+      {/* メモと買い物・なくなったを行き来しても切り替えのアニメーションが続くよう、常に同じ位置で包む */}
+      <PageSwipeArea
+        selectedLocation={selectedLocation}
+        onSelectLocation={setSelectedLocation}
+        selectedStorageLocation={selectedStorageLocation}
+        onSelectStorageLocation={setSelectedStorageLocation}
+      >
+        {isListPage ? (
+          <ListDndProvider mode={isOutOfStock ? "outOfStock" : "shopping"}>
+            {!isOutOfStock && <LocationFilter selected={selectedLocation} onSelect={setSelectedLocation} />}
+            {isOutOfStock && (
+              <StorageLocationFilter selected={selectedStorageLocation} onSelect={setSelectedStorageLocation} />
+            )}
             {mainContent}
-          </ListSwipeArea>
-        </ListDndProvider>
-      ) : mainContent}
+          </ListDndProvider>
+        ) : (
+          mainContent
+        )}
+      </PageSwipeArea>
       {/* 固定配置にせず縦並びの一番下に置き、main がちょうど Dock の上で終わるようにする */}
       <div className="dock static! shrink-0">
         <button

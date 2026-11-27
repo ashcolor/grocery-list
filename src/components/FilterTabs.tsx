@@ -31,7 +31,8 @@ export function FilterTabs({ items, selected, onSelect, droppablePrefix, onActiv
   return (
     // タブの端をツールバーのアイコンやリストのカードと同じ、main の左右パディング（16px）に揃える
     // 余白は中身の側に付けて、右端までスクロールしたときにも右の余白が残るようにする
-    <div ref={scrollRef} className="shrink-0 border-b border-base-300 bg-base-100 overflow-x-auto">
+    // タブ自体は横にスクロールするので、画面・タブ切り替えのスワイプの対象にしない
+    <div ref={scrollRef} data-no-swipe className="shrink-0 border-b border-base-300 bg-base-100 overflow-x-auto">
       {/* 選択中の下線をタブの幅いっぱいにして、端の位置を揃える */}
       <div className="flex w-max min-w-full items-center px-4">
         <div
