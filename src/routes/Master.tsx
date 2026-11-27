@@ -5,7 +5,8 @@ import { PageLayout } from "../components/PageLayout";
 function MasterPage({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <PageLayout title={title}>
-      <div className="flex flex-col gap-4">{children}</div>
+      {/* 買い物リストと同じく、リストを下に寄せて積み上げる。下の余白は右下の追加ボタン（3rem）と上下の隙間 1rem ずつ */}
+      <div className="flex flex-1 flex-col justify-end gap-4 pb-16">{children}</div>
     </PageLayout>
   );
 }

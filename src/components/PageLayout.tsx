@@ -15,7 +15,8 @@ export function PageLayout({ title, children }: { title: string; children: React
   };
 
   return (
-    <div className="flex flex-col gap-6 py-4">
+    // 画面の高さいっぱいに広げ、マスター画面ではリストを下に寄せられるようにする
+    <div className="flex min-h-full flex-col gap-6 py-4">
       <div className="flex items-center gap-1">
         {/* ボタン内の余白の分だけ左にずらし、アイコンを本文の左端に揃える */}
         <button className="btn btn-ghost btn-sm btn-square -ml-1.5" aria-label="戻る" onClick={goBack}>

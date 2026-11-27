@@ -18,9 +18,10 @@ export default function Memo() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-2 pt-1 pb-4">
+    // swipe-target: 左右スワイプで画面を切り替えるとき、指に付いて動く対象（SwipeTabArea 参照）
+    <div className="swipe-target flex flex-col h-full gap-2 pt-1 pb-4">
       {images.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto py-1">
+        <div className="flex gap-2 overflow-x-auto py-1" data-no-swipe>
           {images.map((img) => (
             <div key={img.id} className="relative shrink-0">
               <img
@@ -51,7 +52,7 @@ export default function Memo() {
       )}
 
       <textarea
-        className="textarea textarea-bordered w-full flex-1 resize-none"
+        className="textarea textarea-bordered w-full flex-1 resize-none touch-pan-y"
         placeholder="メモを入力..."
         value={text}
         onChange={(e) => setText(e.target.value)}

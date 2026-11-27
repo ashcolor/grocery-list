@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 import type { NamedItem } from "../types";
 import { SortableNamedItem } from "./SortableNamedItem";
@@ -89,7 +89,15 @@ export function SettingsSection({
     if (fromIdx !== -1 && toIdx !== -1) onReorder(fromIdx, toIdx);
   };
 
-  const sortableIds = items.map((i) => sortableId(idPrefix, i.name));
+  // 買い物リストと同じく、先頭の項目を一番下（親指の届く位置）に置く。データの順番は変えない
+  const displayItems = [...items].reverse();
+  const sortableIds = displayItems.map((i) => sortableId(idPrefix, i.name));
+
+  // 開いたときは、先頭の項目がある一番下を表示する
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, []);
 
   return (
     <>
@@ -97,7 +105,7 @@ export function SettingsSection({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-2">
-            {items.map((item) => (
+            {displayItems.map((item) => (
               <SortableNamedItem
                 key={item.name}
                 item={item}
@@ -110,10 +118,18 @@ export function SettingsSection({
         </SortableContext>
       </DndContext>
 
-      <button className="btn btn-primary btn-sm w-full" onClick={() => setModalTarget(ADDING)}>
-        <Icon icon="mdi:plus" className="size-4" />
-        {addLabel}
-      </button>
+      <div ref={bottomRef} />
+
+      {/* 買い物リストと同じく、追加ボタンは右下に浮かせる */}
+      <div className="fab">
+        <button
+          className="btn btn-lg btn-circle btn-primary"
+          aria-label={addLabel}
+          onClick={() => setModalTarget(ADDING)}
+        >
+          <Icon icon="mdi:plus" className="size-7" />
+        </button>
+      </div>
 
       {modalTarget !== null && (
         <NamedItemModal
